@@ -35,7 +35,7 @@ test('Figma source is canonical, uses the selected node and rejects missing or m
 test('Figma bridge exports one selected icon; stale exports and changed selections cannot be confirmed',async()=>{
  const messages=[];const callbacks={};const opened=[];let bridgeId;
  const node={id:'12:34',name:'收藏',type:'FRAME',width:24,height:24,visible:true,exportAsync:async opts=>{assert.equal(opts.format,'SVG_STRING');return svg;}};
- const figma={currentPage:{selection:[]},ui:{postMessage:m=>messages.push(m)},showUI(html){bridgeId=html.match(/const BRIDGE_ID = "([^"]+)"/)[1];},on:(event,handler)=>callbacks[event]=handler,openExternal:url=>opened.push(url)};
+ const figma={clientStorage:{getAsync:async()=>undefined,setAsync:async()=>{},deleteAsync:async()=>{}},currentPage:{selection:[]},ui:{postMessage:m=>messages.push(m)},showUI(html){bridgeId=html.match(/const BRIDGE_ID = "([^"]+)"/)[1];},on:(event,handler)=>callbacks[event]=handler,openExternal:url=>opened.push(url)};
  vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:await fs.readFile(new URL('../figma-plugin/ui.html',import.meta.url),'utf8')});
  assert.notEqual(bridgeId,'__ICONLAB_BRIDGE_ID__');
  figma.ui.onmessage({type:'ready',bridgeId});await wait(()=>messages.some(m=>m.type==='selection-error'));
@@ -58,7 +58,7 @@ test('real plugin main and bundled UI exchange relayed null-source messages with
  const callbacks={};let html;
  const deliver=message=>w.dispatchEvent(new w.MessageEvent('message',{data:{pluginMessage:message}}));
  const node={id:'12:34',name:'AI星星',type:'FRAME',width:86,height:86,visible:true,exportAsync:async()=>svg};
- const figma={currentPage:{selection:[node]},ui:{postMessage:msg=>queueMicrotask(()=>deliver(msg))},showUI:value=>html=value,on:(name,fn)=>callbacks[name]=fn,openExternal(){}};
+ const figma={clientStorage:{getAsync:async()=>undefined,setAsync:async()=>{},deleteAsync:async()=>{}},currentPage:{selection:[node]},ui:{postMessage:msg=>queueMicrotask(()=>deliver(msg))},showUI:value=>html=value,on:(name,fn)=>callbacks[name]=fn,openExternal(){}};
  vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:await fs.readFile(new URL('../figma-plugin/ui.html',import.meta.url),'utf8')});
  w.document.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
  const bridge={postMessage:({pluginMessage})=>figma.ui.onmessage(pluginMessage)};
@@ -85,6 +85,7 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
  const d=w.document,calls=[];let role='owner',reply='created',current={...selection},geometry=svg,version=1,verifyHook;
  const deliver=(message,source=null)=>{const event=new w.MessageEvent('message',{data:{pluginMessage:{bridgeId:'__ICONLAB_BRIDGE_ID__',...message}},source});w.dispatchEvent(event);};
  const bridge={postMessage:({pluginMessage:m})=>{
+  if(m.type.startsWith('session-'))queueMicrotask(()=>deliver({type:'session-result',requestId:m.requestId,ok:true,session:null}));
   if(m.type==='verify')queueMicrotask(()=>{
    if(verifyHook){verifyHook(m);return;}
    deliver({type:'verified',requestId:m.requestId,selection:{...current,svg:geometry}});
@@ -106,7 +107,7 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
  };
  const context=vm.createContext({window:w,document:d,parent:bridge,DOMParser:w.DOMParser,XMLSerializer:w.XMLSerializer,FormData:w.FormData,TextEncoder,URL,Map,Response,AbortSignal,fetch:fetcher,setTimeout,clearTimeout,console,crypto:globalThis.crypto});
  try {
-  vm.runInContext(script,context);assert.equal(d.getElementById('sync').disabled,true);
+  vm.runInContext(script,context);await wait(()=>!d.getElementById('login').disabled);assert.equal(d.getElementById('sync').disabled,true);
   assert.match(d.getElementById('sync-hint').textContent,/登录/);
   deliver({type:'selection',selection:current});
   assert.ok(d.getElementById('preview').querySelector('img'),'Figma messages with a null source must render a preview');

@@ -4,6 +4,7 @@ import {cleanSVG} from '../../catalog-core.js';
 import {prepareSelection, syncSelection, memoryStorage, syncError} from './sync-core.js';
 import {populateClassificationSelect} from '../../taxonomy.js';
 import {createPluginLibrary} from './library.js';
+import {createRememberedSession} from './session.js';
 
 const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
 const $=id=>document.getElementById(id);
@@ -14,6 +15,11 @@ let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
 for(const [key,id] of [['structure','upload-structure'],['visual_style','upload-style'],['color_mode','upload-color-mode'],['target_platform','upload-platform']])populateClassificationSelect($(id),key);
 const library=createPluginLibrary({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>{model.spaces=[];model.workspace='';model.role='viewer';clearPending();controls();}});
+const remembered=createRememberedSession({client,send,onChange:({remember})=>{
+  $('remember-session').checked=remember;
+  if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}
+  controls();library.contextChanged();
+},onStatus:(text,retry)=>{$('session-status').textContent=text;$('session-retry').hidden=!retry;}});
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
 function clearPending() {model.pending=null;$('duplicate').hidden=true;}
 function watchRead() {
@@ -30,7 +36,9 @@ function controls() {
   $('login-form').hidden=logged;$('account').hidden=!logged;
   $('account-email').textContent=client.session?.user?.email || '';
   $('role').textContent=model.role==='viewer'?'只读 · 可查看，不能同步':model.role==='owner'?'空间所有者 · 可同步':'编辑成员 · 可同步';
-  $('login').disabled=model.busy;
+  $('login').disabled=model.busy||remembered.state().initializing;
+  $('remember-session').disabled=model.busy||remembered.state().initializing;
+  $('session-retry').disabled=model.busy;
   ['logout','workspace','reload-spaces','read'].forEach(id=>$(id).disabled=model.busy);
   document.querySelectorAll('#asset-form input,#asset-form select,#asset-form textarea').forEach(n=>n.disabled=model.busy);
   const reason=model.busy?'正在处理，请稍候。':!logged?'请先在上方登录资产库。':!model.selection?'请选中图标并点击“重新读取”，出现预览后才能同步。':!model.workspace?'请选择目标工作空间。':model.role==='viewer'?'当前空间为只读，需要空间所有者授予编辑权限。':!$('name').value.trim()?'请填写图标名称。':!$('asset-form').elements.namedItem('state_name').value.trim()?'请填写图标状态。':!$('source').value.trim()?'请填写当前 Figma 文件链接。':model.pending?'已发现已有资产，请在上方确认更新或取消。':'';
@@ -112,7 +120,8 @@ window.addEventListener('message',event=>{
   // Figma relays do not guarantee event.source === parent. Match the current
   // plugin runtime's bridge ID instead of depending on Window identity.
   const data=event.data?.pluginMessage;
-  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result'].includes(data.type))return;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result','session-result'].includes(data.type))return;
+  if(data.type==='session-result'){remembered.handleMessage(data);return;}
   if(data.type==='insert-result'){library.handleMessage(data);return;}
   if(data.type==='selection-loading'){
     watchRead();
@@ -132,9 +141,12 @@ window.addEventListener('message',event=>{
 $('login-form').onsubmit=event=>{event.preventDefault();task(async()=>{
   if(!$('login-form').reportValidity())return;
   await client.signIn($('email').value.trim(),$('password').value);
-  $('password').value='';await loadSpaces();message(model.role==='viewer'?'已登录。当前空间为只读，请联系空间所有者授权编辑。':'已登录，确认图标后即可同步。');
+  $('password').value='';await remembered.commitLogin();await loadSpaces();await remembered.flush();message(model.role==='viewer'?'已登录。当前空间为只读，请联系空间所有者授权编辑。':'已登录，确认图标后即可同步。');
 });};
-$('logout').onclick=()=>task(async()=>{try{await client.request('/auth/v1/logout?scope=local',{method:'POST'});}finally{client.setSession(null);$('password').value='';clearPending();}message('已退出当前插件。');});
+$('remember-session').onchange=()=>{const remember=$('remember-session').checked;task(()=>remembered.setRemember(remember));};
+async function restoreLogin(){if(await remembered.restore()){await loadSpaces();message('已恢复登录，可以上传或从资源库插入图标。');}}
+$('session-retry').onclick=()=>task(restoreLogin);
+$('logout').onclick=()=>task(async()=>{await remembered.setRemember(false).catch(()=>{});try{await client.request('/auth/v1/logout?scope=local',{method:'POST'});}finally{client.setSession(null);$('password').value='';clearPending();await remembered.flush();}message('已退出，已清除本机保存的登录。');});
 $('workspace').onchange=()=>task(chooseSpace);
 $('reload-spaces').onclick=()=>task(loadSpaces);
 $('read').onclick=()=>requestCapture();
@@ -153,4 +165,4 @@ $('update').onclick=()=>{const pending=model.pending;
   queueSync(pending.asset);
 };
 $('cancel-update').onclick=()=>{clearPending();message('已取消更新。可修改图标状态后重新同步。');controls();};
-controls();requestCapture('ready');
+controls();requestCapture('ready');task(restoreLogin);

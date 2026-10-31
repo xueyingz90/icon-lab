@@ -15,3 +15,7 @@
 入口：[Icon Lab](https://xueyingz90.github.io/icon-lab/?v=20261031-sidebar-10)。Pages 执行记录见 [GitHub Actions](https://github.com/xueyingz90/icon-lab/actions)。
 
 本次检查发现既有 Supabase 账号配置尚未启用泄露密码保护，迁移前后提示相同，未修改账号设置。后续可按 [官方密码安全说明](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)在符合当前套餐条件时配置。
+
+## v0.6.3 / 插件 v0.4.1
+
+新增可选“记住登录”，存于同一设备的 Figma 插件存储；不改后端、数据库、上传 RPC 或设计文件。会话续期区分临时网络失败与撤销失效，并防止旧请求覆盖已退出或切换的账号。27 项测试通过，插件登录表单已在真实 Chrome 中检查排版；关闭重开行为用实际打包 UI 与主线程模拟验证，真实 Figma 客户端仍需更新后确认。插件安装包经原仓库发布。

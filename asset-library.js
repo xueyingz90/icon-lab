@@ -1,7 +1,7 @@
 import {classification,classificationLabel,matchesClassification,populateClassificationSelect,legacyPlatform} from './taxonomy.js';
 import {createStandardsUI} from './standards-ui.js?v=20261031-standards-7';
 import {cleanSVG, normalizeMetadata, sourceKey, sha256, matchesAsset, localSave} from './catalog-core.js?v=20261031-taxonomy-8';
-import {CloudClient, validateConfig} from './cloud-client.js?v=20261031-standards-7';
+import {CloudClient, validateConfig} from './cloud-client.js?v=20261031-session-11';
 import {cloudConfig} from './cloud-config.js?v=20261031-cloud-1';
 
 const $ = id => document.getElementById(id);

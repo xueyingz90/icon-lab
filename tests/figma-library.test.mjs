@@ -16,7 +16,7 @@ const windowFor=async()=>{const w=new Window({settings:{disableJavaScriptEvaluat
 
 test('actual bundled plugin queries the shared asset API and inserts SVG through main bridge without saving',async()=>{
  const {w}=await windowFor(),d=w.document;const requests=[],outbound=[],nodes=[],viewportCalls=[];let html,bridgeId,emptyImport=false,expired=false;
- const figma={currentPage:{selection:[],appendChild:node=>nodes.push(node)},viewport:{center:{x:200,y:300},scrollAndZoomIntoView:list=>viewportCalls.push(list)},ui:{postMessage:message=>{outbound.push(message);queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{data:{pluginMessage:message}})));}},showUI:content=>{html=content;bridgeId=content.match(/const BRIDGE_ID = "([^"]+)"/)[1];},on(){},createNodeFromSvg:content=>{assert.equal(content,prepareLibrarySVG({svg}).svg);return {id:'inserted',width:24,height:24,children:emptyImport?[]:[{type:'VECTOR',editable:true}],remove(){this.removed=true;}};}};
+ const figma={clientStorage:{getAsync:async()=>undefined,setAsync:async()=>{},deleteAsync:async()=>{}},currentPage:{selection:[],appendChild:node=>nodes.push(node)},viewport:{center:{x:200,y:300},scrollAndZoomIntoView:list=>viewportCalls.push(list)},ui:{postMessage:message=>{outbound.push(message);queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{data:{pluginMessage:message}})));}},showUI:content=>{html=content;bridgeId=content.match(/const BRIDGE_ID = "([^"]+)"/)[1];},on(){},createNodeFromSvg:content=>{assert.equal(content,prepareLibrarySVG({svg}).svg);return {id:'inserted',width:24,height:24,children:emptyImport?[]:[{type:'VECTOR',editable:true}],remove(){this.removed=true;}};}};
  vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:await fs.readFile(new URL('../figma-plugin/ui.html',import.meta.url),'utf8')});
  const asset={id:'asset',workspace_id:'space',name:'玻璃星星',svg,structure:'Filled',visual_style:'Glassmorphism',color_mode:'Multicolor',target_platform:'App'};
  const png={id:'png',workspace_id:'space',name:'图片资源',format:'image/png',svg:'data:image/png;base64,x'};
@@ -34,7 +34,7 @@ test('actual bundled plugin queries the shared asset API and inserts SVG through
  try{
   vm.runInContext(html.match(/<script>([\s\S]*)<\/script>/)[1],context);
   d.getElementById('library-tab').click();assert.match(d.getElementById('library-message').textContent,/登录/);
-  d.getElementById('email').value='viewer@test.com';d.getElementById('password').value='test-password';d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await wait(()=>!d.getElementById('login').disabled);d.getElementById('email').value='viewer@test.com';d.getElementById('password').value='test-password';d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   await wait(()=>d.querySelectorAll('.plugin-library-card').length===2);
   assert.match(d.getElementById('role').textContent,/只读/,'read-only users can reuse but cannot upload');
   const cards=()=>d.querySelectorAll('.plugin-library-card');

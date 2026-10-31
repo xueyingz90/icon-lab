@@ -69,3 +69,15 @@ test('authenticated request uses user JWT; expired session refreshes and RPC err
  await assert.rejects(()=>c.rpc('fail'),/版本冲突/);
  assert.equal(values.size,1);c.setSession(null);assert.equal(values.size,0);
 });
+
+test('refresh failures distinguish offline/server errors from revocation; stale responses cannot restore a logged-out session',async()=>{
+ const storage={getItem:()=>null,setItem(){},removeItem(){}};
+ const session={access_token:'old',refresh_token:'refresh',expires_at:0,user:{id:'u'}};
+ for(const failure of ['offline',503,429,400,401]){
+  const c=new CloudClient({url:'https://test.supabase.co',key:'sb_publishable_test'},{storage,fetcher:async()=>{if(failure==='offline')throw Error('offline');return new Response('{"message":"failed"}',{status:failure});}});c.setSession(session);
+  await assert.rejects(()=>c.refresh());assert.equal(c.session,[400,401].includes(failure)?null:session);
+ }
+ let finish;const c=new CloudClient({url:'https://test.supabase.co',key:'sb_publishable_test'},{storage,fetcher:()=>new Promise(r=>finish=r)});c.setSession(session);
+ const refreshing=c.refresh();c.setSession(null);finish(new Response(JSON.stringify({access_token:'late',refresh_token:'late-refresh',expires_in:3600,user:{id:'u'}})));await assert.rejects(()=>refreshing,/已变化/);assert.equal(c.session,null);
+ let respond;const d=new CloudClient({url:'https://test.supabase.co',key:'sb_publishable_test'},{storage,fetcher:()=>new Promise(r=>respond=r)});d.setSession({...session,expires_at:Date.now()/1000+3600});const request=d.assets('space');d.setSession({access_token:'new-user',refresh_token:'new-refresh',expires_at:Date.now()/1000+3600,user:{id:'other'}});respond(new Response('{"message":"old user failed"}',{status:401}));await assert.rejects(()=>request);assert.equal(d.session.user.id,'other');
+});

@@ -24,14 +24,21 @@ export class CloudClient {
     if (auth) headers.Authorization = 'Bearer ' + this.session.access_token;
     const response = await this.fetcher(this.config.url + path, {method, headers, body:body === undefined ? undefined : JSON.stringify(body), signal:AbortSignal.timeout(20000)});
     let data; const text = await response.text(); try {data = text ? JSON.parse(text) : null;} catch {throw Error('服务响应异常，请稍后重试。');}
-    if (!response.ok) {if (auth && response.status === 401) this.setSession(null); throw Error(data?.msg || data?.message || data?.error_description || data?.error || '请求失败，请检查连接。');}
+    if (!response.ok) {if (auth && response.status === 401 && this.session?.access_token && headers.Authorization === 'Bearer '+this.session.access_token) this.setSession(null); const error=Error(data?.msg || data?.message || data?.error_description || data?.error || '请求失败，请检查连接。');error.status=response.status;throw error;}
     return data;
   }
   storeTokens(data) {if (data?.access_token) this.setSession({...data, expires_at:data.expires_at || Date.now()/1000 + data.expires_in}); return data;}
   async signIn(email, password) {return this.storeTokens(await this.request('/auth/v1/token?grant_type=password', {method:'POST', body:{email, password}, auth:false}));}
   async signUp(email, password) {return this.storeTokens(await this.request('/auth/v1/signup', {method:'POST', body:{email, password}, auth:false}));}
   async refresh() {
-    if (!this.refreshPromise) this.refreshPromise = this.request('/auth/v1/token?grant_type=refresh_token', {method:'POST', body:{refresh_token:this.session?.refresh_token}, auth:false}).then(d => this.storeTokens(d)).catch(e => {this.setSession(null); throw e;}).finally(() => {this.refreshPromise = null;});
+    if (!this.refreshPromise) {
+      const previous=this.session;
+      this.refreshPromise=this.request('/auth/v1/token?grant_type=refresh_token', {method:'POST', body:{refresh_token:previous?.refresh_token}, auth:false}).then(d=>{
+        if(this.session!==previous)throw Error('登录状态已变化，请重试。');
+        if(!d?.access_token||!d?.refresh_token||!d?.user?.id)throw Error('登录服务返回异常，请稍后重试。');
+        return this.storeTokens(d);
+      }).catch(e=>{if(this.session===previous&&[400,401,403].includes(e.status))this.setSession(null);throw e;}).finally(()=>{this.refreshPromise=null;});
+    }
     return this.refreshPromise;
   }
   async signOut() {try {await this.request('/auth/v1/logout', {method:'POST'});} finally {this.setSession(null);}}

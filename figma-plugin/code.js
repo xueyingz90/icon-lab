@@ -1,8 +1,35 @@
-// Existing selection/export bridge plus explicit local SVG insertion. No network or stored credentials.
+// Selection/export and insertion bridge; optional login session stays in clientStorage.
 const bridgeId=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);
 const html=__html__.replace('"__ICONLAB_BRIDGE_ID__"',JSON.stringify(bridgeId));
 figma.showUI(html, {width:420, height:720, themeColors:true});
 const post=message=>figma.ui.postMessage(Object.assign({},message,{bridgeId:bridgeId}));
+const sessionOrigin='https://blolhaacvmciirmiovdo.supabase.co';
+const sessionKey='iconlab.remembered-session.v1:'+sessionOrigin;
+let sessionQueue=Promise.resolve();
+function allowedSession(value){
+  if(!value||typeof value.access_token!=='string'||!value.access_token||value.access_token.length>16000||typeof value.refresh_token!=='string'||!value.refresh_token||value.refresh_token.length>16000||!Number.isFinite(value.expires_at)||!value.user||typeof value.user.id!=='string'||!value.user.id||value.user.id.length>100)throw Error('Invalid session');
+  return {access_token:value.access_token,refresh_token:value.refresh_token,expires_at:value.expires_at,user:{id:value.user.id,email:typeof value.user.email==='string'?value.user.email.slice(0,320):''}};
+}
+function sessionStorage(message){
+  sessionQueue=sessionQueue.then(async()=>{
+    try{
+      if(message.origin!==sessionOrigin)throw Error('Invalid origin');
+      if(message.type==='session-load'){
+        const record=await figma.clientStorage.getAsync(sessionKey);
+        let session=null;
+        if(record){try{if(record.version!==1||record.origin!==sessionOrigin)throw Error('Invalid record');session=allowedSession(record.session);}catch(_){await figma.clientStorage.deleteAsync(sessionKey);}}
+        post({type:'session-result',requestId:message.requestId,ok:true,session:session});
+      }else if(message.type==='session-save'){
+        const session=allowedSession(message.session);
+        await figma.clientStorage.setAsync(sessionKey,{version:1,origin:sessionOrigin,session:session});
+        post({type:'session-result',requestId:message.requestId,ok:true});
+      }else{
+        await figma.clientStorage.deleteAsync(sessionKey);
+        post({type:'session-result',requestId:message.requestId,ok:true});
+      }
+    }catch(_){post({type:'session-result',requestId:message.requestId,ok:false,message:'无法访问本机登录存储，请重试。'});}
+  });
+}
 let generation=0;
 function selectionError() {
   const nodes=figma.currentPage.selection;
@@ -54,6 +81,7 @@ function insertSVG(message) {
 }
 figma.ui.onmessage=message=>{
   if(!message || typeof message!=='object' || message.bridgeId!==bridgeId) return;
+  if(['session-load','session-save','session-clear'].includes(message.type))sessionStorage(message);
   if(message.type==='ready' || message.type==='capture') capture(message.requestId);
   if(message.type==='verify') verify(message);
   if(message.type==='open-workbench') figma.openExternal('https://xueyingz90.github.io/icon-lab/');
