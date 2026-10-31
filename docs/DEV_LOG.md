@@ -57,3 +57,7 @@ Supabase 个人原型项目 icon-lab（新加坡）已创建，项目 ref blolha
 页面测试覆盖 50 演示合并、旧示例归档与用户修改保留、显式保存和历史版本、目标状态导入及云端切换。
 
 本轮只读安全检查另有既有 Auth 提醒：泄露密码检测未开启，本轮未调整认证配置。[Supabase 说明](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection)。
+
+## 2026-10-31 资产详情复制 SVG 代码
+
+上传资产与演示素材的“下载 SVG”旁均新增“复制代码”。复制内容与预览/下载使用同一 SVG 校验与规范化结果，保留颜色。成功显示已复制；剪贴板不可用或权限被拒绝时，展开只读源码并选中，允许手动复制。页面测试已验证实际按钮的成功及拒绝分支，不修改资产或创建新版本。

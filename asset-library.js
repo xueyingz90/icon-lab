@@ -13,6 +13,29 @@ const button = (text, action, cls = 'button') => {const n = el('button', text, c
 const showError = error => { $('catalog-message').textContent = error.message || String(error); $('catalog-message').hidden = false; };
 const clearError = () => {$('catalog-message').hidden = true;};
 function download(content, name, mime = 'application/json') {const url = URL.createObjectURL(new Blob([content], {type:mime})); const a = el('a'); a.href=url; a.download=name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);}
+function copyCodeButton(asset) {
+  const copy=button('复制代码',async()=>{
+    copy.disabled=true;
+    let code;
+    const content=$('catalog-detail-content');
+    content.querySelector('#catalog-copy-result')?.remove();
+    const result=el('div');result.id='catalog-copy-result';
+    const status=el('p',undefined,'catalog-hint');status.setAttribute('role','status');result.append(status);
+    try {code=cleanSVG(asset.svg).svg;}catch(e){status.textContent='无法复制：'+e.message;content.prepend(result);copy.disabled=false;return;}
+    try {
+      if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(code);
+      copy.textContent='已复制';status.textContent='SVG 代码已复制，保留原始颜色。';
+      if(model.selected?.id===asset.id)content.prepend(result);
+    }catch {
+      if(model.selected?.id!==asset.id)return;
+      status.textContent='浏览器未允许直接复制，代码已选中，请按 ⌘C / Ctrl+C 复制。';
+      const field=el('textarea',undefined,'catalog-code');field.value=code;field.readOnly=true;field.rows=6;field.spellcheck=false;field.setAttribute('aria-label','SVG 源码');
+      result.append(field);content.prepend(result);field.focus();field.select();
+    }finally{copy.disabled=false;}
+  });
+  return copy;
+}
 function image(svg, name) {const img = el('img'); img.alt = name; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cleanSVG(svg).svg); return img;}
 function selectOptions(id, values, all = false) {const node=$(id); if(all) node.append(option('全部', '')); values.forEach(x => node.append(option(x, x)));}
 function openDialog(id) {const dialog=$(id); if(!dialog.open) dialog.showModal();}
@@ -170,7 +193,7 @@ function showDemoDetail(asset) {
     form.elements.namedItem('note').value='来自 Icon Lab 内置演示素材。';
   });
   save.disabled=model.mode==='cloud' && (!model.client?.session || model.role==='viewer');
-  $('catalog-detail-actions').replaceChildren(button('下载 SVG',()=>download(asset.svg,asset.id.replace(':','-')+'.svg','image/svg+xml')),button('用作起始状态',()=>use('from')),button('用作目标状态',()=>use('to')),save);
+  $('catalog-detail-actions').replaceChildren(button('下载 SVG',()=>download(asset.svg,asset.id.replace(':','-')+'.svg','image/svg+xml')),copyCodeButton(asset),button('用作起始状态',()=>use('from')),button('用作目标状态',()=>use('to')),save);
   openDialog('catalog-detail');
 }
 async function showDetail(asset) {
@@ -186,7 +209,7 @@ async function showDetail(asset) {
   content.append(preview,properties,source,el('h3','版本记录'));
   const history=el('div',undefined,'catalog-history');content.append(history);
   const edit=button('更新版本',()=>{$('catalog-detail').close();openUpload(asset);},'button primary'); edit.disabled=model.mode==='cloud' && (model.role==='viewer'||!model.client?.session);
-  const actions=$('catalog-detail-actions'); actions.replaceChildren(button('下载 SVG',()=>{try{download(cleanSVG(asset.svg).svg,asset.name.replace(/[^\p{L}\p{N}_-]/gu,'_')+'.svg','image/svg+xml');}catch(e){showError(e);}}),button('用于状态动效',()=>{$('catalog-detail').close(); window.iconflow.useCatalogSVG(cleanSVG(asset.svg).svg,asset.name);}),edit);
+  const actions=$('catalog-detail-actions'); actions.replaceChildren(button('下载 SVG',()=>{try{download(cleanSVG(asset.svg).svg,asset.name.replace(/[^\p{L}\p{N}_-]/gu,'_')+'.svg','image/svg+xml');}catch(e){showError(e);}}),copyCodeButton(asset),button('用于状态动效',()=>{$('catalog-detail').close(); window.iconflow.useCatalogSVG(cleanSVG(asset.svg).svg,asset.name);}),edit);
   openDialog('catalog-detail');
   try {
     const revisions=model.mode==='cloud' ? await model.client.revisions(asset.id) : asset.revisions||[];

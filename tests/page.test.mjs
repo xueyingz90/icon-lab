@@ -11,7 +11,9 @@ test('actual page modules boot; local asset registration, search, version update
  const w=new Window({url:'http://localhost/',settings:{disableJavaScriptFileLoading:true,disableJavaScriptEvaluation:true,disableCSSFileLoading:true}});
  const html=await fs.readFile(new URL('../index.html',import.meta.url),'utf8');
  w.document.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
- for(const name of ['window','document','localStorage','sessionStorage','DOMParser','XMLSerializer','CustomEvent','FormData','File','Event'])Object.defineProperty(globalThis,name,{value:name==='window'?w:w[name],configurable:true,writable:true});
+ for(const name of ['window','document','navigator','localStorage','sessionStorage','DOMParser','XMLSerializer','CustomEvent','FormData','File','Event'])Object.defineProperty(globalThis,name,{value:name==='window'?w:w[name],configurable:true,writable:true});
+ const copied=[];let allowCopy=true;
+ Object.defineProperty(w.navigator,'clipboard',{configurable:true,value:{writeText:async code=>{if(!allowCopy)throw Error('Clipboard permission denied');copied.push(code);}}});
  globalThis.matchMedia=w.matchMedia.bind(w);globalThis.requestAnimationFrame=w.requestAnimationFrame.bind(w);globalThis.cancelAnimationFrame=w.cancelAnimationFrame.bind(w);globalThis.prompt=()=>null;
  globalThis.fetch=async url=>new Response(await fs.readFile(new URL('../'+url,import.meta.url)));
  const errors=[];const originalError=console.error;console.error=(...args)=>errors.push(args.join(' '));
@@ -39,6 +41,10 @@ test('actual page modules boot; local asset registration, search, version update
   d.querySelector('[data-scope="demo"]').click();d.querySelector('.catalog-card').click();
   assert.ok(d.getElementById('catalog-detail').open);assert.match(d.getElementById('catalog-detail-content').textContent,/演示素材/);
   assert.equal(d.getElementById('catalog-total').textContent,'1');
+  Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='复制代码').click();
+  await wait(()=>copied.length===1);
+  assert.equal(copied[0],decodeURIComponent(d.querySelector('.catalog-detail-preview img').src.split(',')[1]));
+  assert.match(d.getElementById('catalog-copy-result').textContent,/已复制/);
   Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='保存到我的资产').click();
   assert.ok(d.getElementById('catalog-upload').open);const form=d.getElementById('catalog-upload-form');form.elements.namedItem('name').value='跨端收藏';form.elements.namedItem('tags').value='书签,收藏';
   form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
@@ -46,6 +52,13 @@ test('actual page modules boot; local asset registration, search, version update
   assert.equal(d.getElementById('catalog-detail-title').textContent,'跨端收藏');
   assert.match(d.getElementById('catalog-detail-content').textContent,/已保存 · 本地/);
   assert.doesNotMatch(d.getElementById('catalog-detail-content').textContent,/未审核/);
+  allowCopy=false;
+  Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='复制代码').click();
+  await wait(()=>d.querySelector('#catalog-copy-result textarea'));
+  const codeField=d.querySelector('#catalog-copy-result textarea');
+  assert.equal(codeField.readOnly,true);
+  assert.equal(codeField.value,JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1')).find(a=>a.name==='跨端收藏').svg);
+  assert.match(d.getElementById('catalog-copy-result').textContent,/Ctrl\+C/);allowCopy=true;
   d.querySelector('[data-scope="assets"]').click();
   const search=d.getElementById('catalog-search');search.value='书签';search.dispatchEvent(new w.Event('input'));assert.equal(d.querySelectorAll('.catalog-card').length,1);
   const edit=Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='更新版本');edit.click();form.elements.namedItem('note').value='修改后仍保留 v1';form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
