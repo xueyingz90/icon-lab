@@ -1,6 +1,6 @@
 import {basicIcons} from './library.js';
 import {cleanSVG, normalizeMetadata, sourceKey, sha256, matchesAsset, localSave} from './catalog-core.js';
-import {CloudClient, validateConfig} from './cloud-client.js';
+import {CloudClient, validateConfig} from './cloud-client.js?v=20261031-login-2';
 import {cloudConfig} from './cloud-config.js?v=20261031-cloud-1';
 
 const $ = id => document.getElementById(id);

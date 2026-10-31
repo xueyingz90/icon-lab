@@ -38,6 +38,24 @@ test('browser config rejects secret/service keys and unsupported URL schemes',()
  const key='e30.'+btoa(JSON.stringify({role:'service_role'}))+'.x';assert.throws(()=>validateConfig('https://a.supabase.co',key));
  assert.deepEqual(validateConfig('https://a.supabase.co','sb_publishable_x'),{url:'https://a.supabase.co',key:'sb_publishable_x'});
 });
+test('default fetch keeps the browser global receiver during login and registration',async()=>{
+ const originalFetch=globalThis.fetch;
+ const calls=[];
+ globalThis.fetch=async function(url,options) {
+  assert.equal(this,globalThis,'native browser fetch requires its global receiver');
+  calls.push({url,options});
+  return new Response(JSON.stringify({user:{id:'u'}}));
+ };
+ try {
+  const storage={getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
+  const c=new CloudClient({url:'https://test.supabase.co',key:'sb_publishable_test'},{storage});
+  await c.signIn('user@example.com','password');
+  await c.signUp('user@example.com','password');
+  assert.equal(calls.length,2);
+  assert.ok(calls[0].url.endsWith('/auth/v1/token?grant_type=password'));
+  assert.ok(calls[1].url.endsWith('/auth/v1/signup'));
+ } finally {globalThis.fetch=originalFetch;}
+});
 test('authenticated request uses user JWT; expired session refreshes and RPC errors are surfaced',async()=>{
  const values=new Map();const storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
  const calls=[];const fetcher=async(url,opts)=>{calls.push({url,opts});

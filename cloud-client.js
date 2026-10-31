@@ -10,7 +10,7 @@ export function validateConfig(url, key) {
   return {url:parsed.origin, key};
 }
 export class CloudClient {
-  constructor(config, {fetcher = fetch, storage = sessionStorage} = {}) {
+  constructor(config, {fetcher = globalThis.fetch.bind(globalThis), storage = sessionStorage} = {}) {
     this.config = validateConfig(config.url, config.key); this.fetcher = fetcher; this.storage = storage;
     this.storageKey = 'iconlab-session:' + this.config.url;
     try {this.session = JSON.parse(storage.getItem(this.storageKey));} catch {this.session = null;}

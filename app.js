@@ -198,4 +198,4 @@ window.iconflow={sanitize,state,buildMotion,exportFrames,animatedSVG,lottieJSON,
  selectedLibraryAsset:()=>({name:iconFor(librarySelected).name,svg:svg(iconFor(librarySelected).d)}),
  useCatalogSVG:async(markup,name)=>{mode('state');await upload([new File([markup],name+'.svg',{type:'image/svg+xml'})],'from');}
 };
-import('./asset-library.js?v=20261031-cloud-1').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});
+import('./asset-library.js?v=20261031-login-2').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});
