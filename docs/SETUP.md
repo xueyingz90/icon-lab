@@ -74,7 +74,7 @@ npm test
 
 ## 本阶段之后
 
-共享资产库验证完成后，再开发 Figma 的“读取单个选中节点 → 预览 → 补元数据 → 提交同一后端”。已有 API 是 `il_save_asset`。Figma 插件的来源获取、登录授权与网络域名声明需要单独验证。AI 生成、审核发布、复杂形变、MCP 不是本次交付内容。
+Figma 单图标同步开发包已实现，见 [安装与验收](../figma-plugin/README.md)。复用已有 `il_save_asset`，不改数据库结构；采用当前后端的精确网络域名、仅本次运行的会话和显式更新确认。已完成自动化检查，真实 Figma 安装、SVG 导出及网络联调待用户验收。AI 生成、审核发布、复杂形变、MCP 尚未实现。
 
 官方参考：
 - https://supabase.com/docs/guides/getting-started/api-keys

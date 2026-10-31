@@ -19,3 +19,9 @@
 开发测试：`npm install`，然后 `npm test`。不要把 node_modules 放到部署包。
 
 Morphicons、GIFENC 依赖与许可证保留于 vendor/。
+
+## Figma 单图标同步
+
+开发试用插件位于 figma-plugin/，可通过 Figma 桌面版导入 manifest.json。安装和验收见 [插件说明](figma-plugin/README.md)。插件复用同一后端，支持选区预览、来源关联、显式更新版本和只读权限拦截；暂未完成真实 Figma 客户端验收。
+
+插件构建：`npm run build:figma`。分发包仅含本地代码和公开连接配置，无需团队成员安装 MCP。

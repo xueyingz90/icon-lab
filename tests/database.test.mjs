@@ -5,6 +5,9 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 const require=createRequire(path.join(process.env.ICONLAB_TEST_DEPS || process.cwd(),'package.json'));
 const {PGlite}=require('@electric-sql/pglite');
+const {DOMParser,XMLSerializer}=require('@xmldom/xmldom');
+globalThis.DOMParser=DOMParser;globalThis.XMLSerializer=XMLSerializer;
+const {prepareSelection,syncSelection}=await import('../figma-plugin/src/sync-core.js');
 test('PostgreSQL integration: isolation, roles, duplicate handling, immutable revisions and optimistic locking',async()=>{
  const db=new PGlite();
  const alice='11111111-1111-4111-8111-111111111111',bob='22222222-2222-4222-8222-222222222222',eve='33333333-3333-4333-8333-333333333333';
@@ -29,6 +32,20 @@ test('PostgreSQL integration: isolation, roles, duplicate handling, immutable re
  const history=(await db.query('select * from public.il_revisions order by version')).rows;assert.equal(history.length,2);assert.equal(history[0].metadata.name,'收藏');
  await assert.rejects(()=>save(meta,svg,id,1),/版本已变化/);
  await assert.rejects(()=>db.query('delete from public.il_revisions where asset_id=$1',[id]),/permission denied/);
+ const selected={token:1,nodeId:'12:34',name:'Figma 收藏',svg};
+ const prepared=prepareSelection(selected,{name:'Figma 收藏',source_url:'https://www.figma.com/design/file/name'});
+ const pluginClient={rpc:async(name,body)=>{
+  assert.equal(name,'il_save_asset');
+  return (await call('select public.il_save_asset($1,$2::jsonb,$3,$4,$5) as data',[body.p_workspace_id,JSON.stringify(body.p_meta),body.p_svg,body.p_asset_id,body.p_expected_version])).data;
+ }};
+ const figmaCreated=await syncSelection(pluginClient,w,prepared);assert.equal(figmaCreated.result,'created');
+ assert.equal(figmaCreated.asset.source_key,'figma:file:12:34');
+ assert.equal((await syncSelection(pluginClient,w,prepared)).result,'unchanged');
+ const modified=prepareSelection({...selected,svg:svg.replace('L12 12','L18 18')},{name:'Figma 收藏',source_url:'https://www.figma.com/design/file/renamed?node-id=other'});
+ const figmaDuplicate=await syncSelection(pluginClient,w,modified);assert.equal(figmaDuplicate.result,'duplicate');
+ const figmaUpdated=await syncSelection(pluginClient,w,modified,figmaDuplicate.asset);assert.equal(figmaUpdated.asset.version,2);
+ const figmaHistory=(await db.query('select * from public.il_revisions where asset_id=$1 order by version',[figmaCreated.asset.id])).rows;
+ assert.equal(figmaHistory.length,2);assert.equal(figmaHistory[0].svg,prepared.svg);assert.equal(figmaHistory[1].metadata.source_key,'figma:file:12:34');
  await db.exec('reset role;set role anon');await assert.rejects(()=>db.query('select * from public.il_assets'),/permission denied/);await assert.rejects(()=>db.query('select public.il_create_workspace($1)',['非法空间']),/permission denied/);
  await db.close();
 });

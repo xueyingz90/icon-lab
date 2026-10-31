@@ -1,0 +1,42 @@
+// Read-only document bridge: no network, document writes, credentials or persistent storage.
+figma.showUI(__html__, {width:420, height:720, themeColors:true});
+let generation=0;
+function selectionError() {
+  const nodes=figma.currentPage.selection;
+  if(nodes.length!==1) return '请只选中一个图标 Frame 或 Component。';
+  const node=nodes[0];
+  if(!['FRAME','COMPONENT','INSTANCE'].includes(node.type)) return '请将图标放入 Frame 或 Component 后选中它。';
+  if(node.visible===false || !(node.width>0 && node.height>0)) return '所选图标不可见或尺寸无效。';
+  return '';
+}
+async function capture(requestId) {
+  const token=++generation;
+  figma.ui.postMessage({type:'selection-loading',token:token});
+  try {
+    const error=selectionError();if(error) throw Error(error);
+    const node=figma.currentPage.selection[0];
+    const svg=await node.exportAsync({format:'SVG_STRING',svgOutlineText:true,svgIdAttribute:false,svgSimplifyStroke:true});
+    if(token!==generation || node.removed) return;
+    if(typeof svg!=='string' || svg.length>1048576) throw Error('导出的 SVG 超过 1MB 或格式无效。');
+    let fileKey='';try {fileKey=figma.fileKey || '';}catch(_){}
+    figma.ui.postMessage({type:'selection',selection:{token:token,nodeId:node.id,name:node.name,nodeType:node.type,width:node.width,height:node.height,fileKey:fileKey,svg:svg},requestId:requestId});
+  }catch(e){if(token===generation)figma.ui.postMessage({type:'selection-error',message:e.message || '无法读取所选图标。',requestId:requestId});}
+}
+figma.on('selectionchange',()=>capture());
+async function verify(message) {
+  const token=generation;
+  try {
+    const error=selectionError();if(error)throw Error(error);
+    const node=figma.currentPage.selection[0];
+    if(node.id!==message.nodeId || token!==message.token)throw Error('选区已变化，请检查新预览后重试。');
+    const svg=await node.exportAsync({format:'SVG_STRING',svgOutlineText:true,svgIdAttribute:false,svgSimplifyStroke:true});
+    if(token!==generation || node.removed)throw Error('选区已变化，请重新读取。');
+    figma.ui.postMessage({type:'verified',requestId:message.requestId,selection:{token:token,nodeId:node.id,name:node.name,nodeType:node.type,width:node.width,height:node.height,svg:svg}});
+  }catch(e){figma.ui.postMessage({type:'verify-error',requestId:message.requestId,message:e.message || '无法确认选区。'});}
+}
+figma.ui.onmessage=message=>{
+  if(!message || typeof message!=='object') return;
+  if(message.type==='ready' || message.type==='capture') capture(message.requestId);
+  if(message.type==='verify') verify(message);
+  if(message.type==='open-workbench') figma.openExternal('https://xueyingz90.github.io/icon-lab/');
+};
