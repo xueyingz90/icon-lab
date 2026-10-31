@@ -2,6 +2,8 @@ import {CloudClient} from '../../cloud-client.js';
 import {cloudConfig} from '../../cloud-config.js';
 import {cleanSVG} from '../../catalog-core.js';
 import {prepareSelection, syncSelection, memoryStorage, syncError} from './sync-core.js';
+import {populateClassificationSelect} from '../../taxonomy.js';
+import {createPluginLibrary} from './library.js';
 
 const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
 const $=id=>document.getElementById(id);
@@ -10,6 +12,8 @@ const model={selection:null,spaces:[],workspace:'',role:'viewer',busy:false,pend
 const verifications=new Map();let requestCounter=0;
 let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
+for(const [key,id] of [['structure','upload-structure'],['visual_style','upload-style'],['color_mode','upload-color-mode'],['target_platform','upload-platform']])populateClassificationSelect($(id),key);
+const library=createPluginLibrary({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>{model.spaces=[];model.workspace='';model.role='viewer';clearPending();controls();}});
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
 function clearPending() {model.pending=null;$('duplicate').hidden=true;}
 function watchRead() {
@@ -39,11 +43,12 @@ async function task(action) {
   if(model.busy)return;
   model.busy=true;message('');controls();
   try {await action();}catch(e){if(/版本已变化/.test(e.message || ''))clearPending();message(syncError(e),'error');}
-  finally {model.busy=false;if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}controls();}
+  finally {model.busy=false;if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}controls();library.contextChanged();}
 }
 async function chooseSpace() {
   clearPending();model.workspace=$('workspace').value;
   model.role=model.workspace?await client.role(model.workspace,client.session.user.id):'viewer';
+  library.contextChanged();
 }
 async function loadSpaces() {
   model.spaces=await client.workspaces();
@@ -107,7 +112,8 @@ window.addEventListener('message',event=>{
   // Figma relays do not guarantee event.source === parent. Match the current
   // plugin runtime's bridge ID instead of depending on Window identity.
   const data=event.data?.pluginMessage;
-  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error'].includes(data.type))return;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result'].includes(data.type))return;
+  if(data.type==='insert-result'){library.handleMessage(data);return;}
   if(data.type==='selection-loading'){
     watchRead();
     model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();

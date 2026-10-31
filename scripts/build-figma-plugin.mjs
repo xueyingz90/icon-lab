@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const root=fileURLToPath(new URL('../',import.meta.url));
-const sources=['catalog-core.js','cloud-client.js','cloud-config.js','figma-plugin/src/sync-core.js','figma-plugin/src/ui.js'];
+const sources=['taxonomy.js','catalog-core.js','cloud-client.js','cloud-config.js','figma-plugin/src/sync-core.js','figma-plugin/src/library.js','figma-plugin/src/ui.js'];
 const scripts=await Promise.all(sources.map(async file=>{
   const source=await fs.readFile(path.join(root,file),'utf8');
   return '// '+file+'\n'+source.replace(/^import[^\n]*\n/gm,'').replace(/^export /gm,'');

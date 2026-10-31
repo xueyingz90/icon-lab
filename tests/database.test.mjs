@@ -15,6 +15,7 @@ test('PostgreSQL integration: isolation, roles, duplicate handling, immutable re
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;insert into auth.users values('${alice}','alice@example.com'),('${bob}','bob@example.com'),('${eve}','eve@example.com');`);
  await db.exec(await fs.readFile(new URL('../backend/001_asset_library.sql',import.meta.url),'utf8'));
  await db.exec(await fs.readFile(new URL('../supabase/migrations/20261031112854_icon_standards.sql',import.meta.url),'utf8'));
+ await db.exec(await fs.readFile(new URL('../supabase/migrations/20261031125455_asset_taxonomy.sql',import.meta.url),'utf8'));
  const as=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');};
  const call=async(sql,args=[])=> (await db.query(sql,args)).rows[0];
  await as(alice);const {id:w}=await call('select public.il_create_workspace($1) as id',['我的图标库']);

@@ -121,7 +121,9 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
   assert.equal(d.getElementById('password').value,'');
   const submit=()=>d.getElementById('asset-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   const saves=()=>calls.filter(c=>c.url.includes('/rpc/il_save_asset'));
+  for(const [id,value] of Object.entries({'upload-structure':'Filled','upload-style':'Glassmorphism','upload-color-mode':'Multicolor','upload-platform':'Glasses'}))d.getElementById(id).value=value;
   submit();await wait(()=>saves().length===1 && !d.getElementById('sync').disabled);
+  assert.equal(saves()[0].body.p_meta.structure,'Filled');assert.equal(saves()[0].body.p_meta.visual_style,'Glassmorphism');assert.equal(saves()[0].body.p_meta.color_mode,'Multicolor');assert.equal(saves()[0].body.p_meta.target_platform,'Glasses');
   assert.equal(saves()[0].body.p_meta.source_key,'figma:file:12:34');assert.equal(saves()[0].body.p_meta.name,'收藏');
   assert.match(d.getElementById('message').textContent,/已保存/);
   assert.doesNotMatch(d.getElementById('message').textContent,/未审核/);

@@ -12,6 +12,8 @@
 
 原工作台的数据仍保存在浏览器中；资产库的账号不会自动同步原动效项目。
 
+状态动效左侧的“起始”“目标”卡片支持直接点击选择或拖入 SVG / PNG，上传后替换对应状态并沿用原本地保存。下拉选择和原上传入口保留。
+
 ## 开发
 
 无需构建或生产依赖。用静态服务器打开根目录，不要直接双击 HTML。
@@ -20,9 +22,9 @@
 
 Morphicons、GIFENC 依赖与许可证保留于 vendor/。
 
-## Figma 单图标同步
+## 多维分类与 Figma 资源库
 
-开发试用插件位于 figma-plugin/，可通过 Figma 桌面版导入 manifest.json。安装和验收见 [插件说明](figma-plugin/README.md)。插件复用同一后端，支持选区预览、来源关联、显式更新版本和只读权限拦截；暂未完成真实 Figma 客户端验收。
+开发试用插件位于 figma-plugin/，可通过 Figma 桌面版导入 manifest.json。安装和验收见 [插件说明](figma-plugin/README.md)。保留已跑通的选区预览、来源关联、版本与权限流程，新增同库检索与 SVG 矢量插入。网页支持结构、风格、颜色、平台四维组合筛选。新增字段兼容旧资产，不重建图标库。[迁移、测试与实机验收](docs/TAXONOMY_AND_LIBRARY.md)。分类迁移已于 2026-10-31 完成；网页版本 v0.6.2 通过 GitHub Pages 发布。当前状态见 [发布记录](docs/DEPLOYMENT.md)。
 
 插件构建：`npm run build:figma`。分发包仅含本地代码和公开连接配置，无需团队成员安装 MCP。
 

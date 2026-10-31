@@ -64,6 +64,7 @@ test('actual page modules boot; local asset registration, search, version update
   d.getElementById('standard-close').click();
   Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='保存到我的资产').click();
   assert.ok(d.getElementById('catalog-upload').open);const form=d.getElementById('catalog-upload-form');form.elements.namedItem('name').value='跨端收藏';form.elements.namedItem('tags').value='书签,收藏';
+  for(const [key,value] of Object.entries({structure:'Filled',visual_style:'Glassmorphism',color_mode:'Multicolor',target_platform:'App'}))form.elements.namedItem(key).value=value;
   form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
   await wait(()=>d.getElementById('catalog-detail').open);
   assert.equal(d.getElementById('catalog-detail-title').textContent,'跨端收藏');
@@ -78,6 +79,14 @@ test('actual page modules boot; local asset registration, search, version update
   assert.match(d.getElementById('catalog-copy-result').textContent,/Ctrl\+C/);allowCopy=true;
   d.querySelector('[data-scope="assets"]').click();
   const search=d.getElementById('catalog-search');search.value='书签';search.dispatchEvent(new w.Event('input'));assert.equal(d.querySelectorAll('.catalog-card').length,1);
+  const filter=(id,value)=>{const select=d.getElementById(id);select.value=value;select.dispatchEvent(new w.Event('change'));};
+  filter('catalog-type','Filled');filter('catalog-style','Glassmorphism');filter('catalog-color-mode','Multicolor');filter('catalog-platform','App');
+  assert.equal(d.querySelectorAll('.catalog-card').length,1,'all four dimensions are combined');
+  filter('catalog-color-mode','Monochrome');assert.equal(d.querySelectorAll('.catalog-card').length,0);
+  d.getElementById('catalog-reset').click();assert.equal(search.value,'');
+  for(const id of ['catalog-type','catalog-style','catalog-color-mode','catalog-platform'])assert.equal(d.getElementById(id).value,'');
+  assert.equal(d.querySelectorAll('.catalog-card').length,52,'reset also restores all asset scopes');
+  d.querySelector('[data-scope="assets"]').click();search.value='书签';search.dispatchEvent(new w.Event('input'));
   const edit=Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='更新版本');edit.click();form.elements.namedItem('note').value='修改后仍保留 v1';form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
   await wait(()=>d.querySelectorAll('.catalog-history>div').length===2);
   const records=JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1'));const asset=records.find(a=>a.name==='跨端收藏');assert.equal(asset.version,2);assert.equal(asset.revisions[1].note,'来自 Icon Lab 内置演示素材。');

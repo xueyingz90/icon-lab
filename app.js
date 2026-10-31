@@ -154,7 +154,25 @@ function stateLottieJSON(){for(const key of [state.from,state.to]){const markup=
 async function loadFavoriteSamples(){try{for(const[key,url,name]of [['favoriteOff','samples/favorite-off.svg','未收藏'],['favoriteOn','samples/favorite-on.svg','已收藏']]){const response=await fetch(url);if(!response.ok)throw Error('样本无法加载');const parsed=sanitize(await response.text());custom[key]={name,markup:parsed.markup,d:parsed.d};}setupOptions();if(state.mode==='state'&&!state.statePair){state.from='favoriteOff';state.to='favoriteOn';setupOptions();buildMotion();}save();}catch(e){toast('收藏样本加载失败，可手动上传 SVG。');}}
 
 
-function renderStateSources(){const el=$('state-source-previews');el.replaceChildren();for(const[key,title]of [[state.from,'起始'],[state.to,'目标']]){const card=document.createElement('div');card.className='state-source';card.innerHTML=stateMarkup(iconFor(key));const label=document.createElement('strong');label.textContent=`${title} · ${iconFor(key).name}`;card.append(label);el.append(card);}$('reference-count').textContent='2 个状态';}
+function renderStateSources(){
+ const el=$('state-source-previews');el.replaceChildren();
+ for(const[side,title]of [['from','起始'],['to','目标']]){
+  const icon=iconFor(state[side]),card=document.createElement('button');
+  card.type='button';card.className='state-source';card.dataset.side=side;
+  card.setAttribute('aria-label',`${title}图标：${icon.name}，点击上传或替换 SVG / PNG`);
+  card.innerHTML=stateMarkup(icon);
+  const label=document.createElement('strong');label.textContent=`${title} · ${icon.name}`;
+  const action=document.createElement('span');action.className='state-source-action';action.textContent='＋ 上传 / 替换';
+  const hint=document.createElement('small');hint.textContent='点击或拖入 SVG / PNG';
+  card.append(label,action,hint);
+  card.onclick=()=>$(`${side}-input`).click();
+  card.ondragover=e=>{e.preventDefault();e.stopPropagation();card.classList.add('drag');if(e.dataTransfer)e.dataTransfer.dropEffect='copy';};
+  card.ondragleave=e=>{if(!card.contains(e.relatedTarget))card.classList.remove('drag');};
+  card.ondrop=e=>{e.preventDefault();e.stopPropagation();card.classList.remove('drag');upload(Array.from(e.dataTransfer?.files||[]).slice(0,1),side);};
+  el.append(card);
+ }
+ $('reference-count').textContent='2 个状态';
+}
 function loadImage(url){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('图片无法读取。'));image.src=url;});}
 const imageCache=new Map();
 async function rasterFrame(t,side,background,reverse=false){const canvas=document.createElement('canvas');canvas.width=canvas.height=side;const context=canvas.getContext('2d');if(background==='white'){context.fillStyle='#ffffff';context.fillRect(0,0,side,side);}
@@ -197,4 +215,4 @@ window.iconflow={sanitize,state,buildMotion,exportFrames,animatedSVG,lottieJSON,
  demoAssets:()=>Object.entries(icons).map(([key,item])=>({key,name:item.name,svg:`<svg xmlns="${NS}" viewBox="0 0 24 24" fill="none" stroke="#30343b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${item.d}"/></svg>`})),
  useCatalogSVG:async(markup,name,target='from')=>{state.statePair=[state.from,state.to];mode('state');await upload([new File([markup],name+'.svg',{type:'image/svg+xml'})],target);}
 };
-import('./asset-library.js?v=20261031-standards-7').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});
+import('./asset-library.js?v=20261031-sidebar-10').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});

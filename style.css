@@ -31,3 +31,9 @@ html[data-theme=dark] .brand-name{background-image:linear-gradient(110deg,#eeedf
 @media(max-width:700px){.brand-name{transform:scaleX(1.08);font-size:23px}}
 
 #theme-example,#error-example{margin-bottom:8px}
+.state-source{width:100%;color:var(--text);cursor:pointer;transition:border-color .15s,background .15s}.state-source:hover,.state-source.drag{border-color:var(--accent);background:var(--accent-soft)}.state-source:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.state-source-action{display:block;font-size:12px;font-weight:500;margin-top:14px}.state-source small{display:block;font-size:10px;line-height:1.6;color:var(--muted);margin-top:5px}.state-source>svg{pointer-events:none}@media(prefers-reduced-motion:reduce){.state-source{transition:none}}
+
+/* Text-only navigation, with a shared left edge for all workspace modes. */
+.rail nav[aria-label="工作模式"] .nav{font-size:14px;justify-content:flex-start;padding:0 15px;gap:8px}
+@media(max-width:1050px){.rail nav[aria-label="工作模式"] .nav{font-size:11px;white-space:normal;height:auto;min-height:44px;line-height:1.5;padding:8px 4px;justify-content:center}}
+@media(max-width:700px){.rail{height:auto;flex-wrap:wrap;gap:10px}.rail nav[aria-label="工作模式"]{width:100%;min-width:0;gap:4px;overflow-x:auto}.rail nav[aria-label="工作模式"] .nav{flex:0 0 auto;width:auto;white-space:nowrap;margin:0;min-height:36px;padding:7px 10px;justify-content:flex-start;font-size:12px}}

@@ -1,3 +1,4 @@
+import {TAXONOMY,UNCLASSIFIED} from './taxonomy.js';
 // Only publishable / legacy anon keys belong in a browser. Database RLS is mandatory.
 export function validateConfig(url, key) {
   let parsed; try {parsed = new URL(url);} catch {throw Error('请填写有效的 Supabase Project URL。');}
@@ -40,4 +41,14 @@ export class CloudClient {
   assets(workspaceId) {return this.request('/rest/v1/il_assets?select=*&workspace_id=eq.' + encodeURIComponent(workspaceId) + '&order=updated_at.desc&limit=501');}
   revisions(assetId) {return this.request('/rest/v1/il_revisions?select=*&asset_id=eq.' + encodeURIComponent(assetId) + '&order=version.desc&limit=100');}
   standards(workspaceId) {return this.request('/rest/v1/il_standards?select=*&workspace_id=eq.'+encodeURIComponent(workspaceId)+'&order=platform.asc');}
+  searchAssets(workspaceId,{name='',structure='',visual_style='',color_mode='',target_platform='',offset=0,limit=40}={}) {
+    if(!workspaceId)throw Error('请先选择工作空间。');
+    const query=new URLSearchParams({select:'*',workspace_id:'eq.'+workspaceId,order:'updated_at.desc,id.desc',limit:String(Math.min(100,Math.max(1,limit))),offset:String(Math.max(0,offset))});
+    const text=String(name).trim().slice(0,100);if(text)query.set('name','ilike.%'+text.replace(/[\\%_*]/g,'\\$&')+'%');
+    for(const [key,value] of Object.entries({structure,visual_style,color_mode,target_platform})){
+      if(!value)continue;if(value===UNCLASSIFIED)query.set(key,'is.null');
+      else if(TAXONOMY[key].some(([v])=>v===value))query.set(key,'eq.'+value);else throw Error('筛选条件无效。');
+    }
+    return this.request('/rest/v1/il_assets?'+query.toString());
+  }
 }

@@ -2,6 +2,8 @@
 
 此版本保留原动效工作台，新增资产登记、搜索筛选、详情、来源、历史版本、重复提示、账号与工作空间。
 
+当前增量版本增加多维分类与 Figma 资源库，请按[本次迁移与部署步骤](TAXONOMY_AND_LIBRARY.md)执行。以下已部署状态指此前的资产库基础版，分类迁移已于 2026-10-31 完成，见 [发布记录](DEPLOYMENT.md)。
+
 ## 当前部署状态（2026-10-31）
 
 个人原型项目 icon-lab 已创建，表与版本管理 RPC 已部署，cloud-config.js 已写入公开连接配置。真实数据库的事务回滚测试通过，安全 advisors 无告警。性能检查仅提示新建索引尚未使用，待真实负载后再评估：[官方说明](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)。
@@ -20,7 +22,7 @@
 若自行配置，按以下顺序：
 
 1. 在 https://supabase.com/dashboard 创建一个用于个人原型的项目。数据库密码自行保管，不要填到网页或发到聊天中。
-2. 打开该项目 SQL Editor，粘贴并完整执行 `backend/001_asset_library.sql`。脚本用于新项目，建表、访问规则和版本函数在同一事务中创建；不是反复执行的增量更新脚本。
+2. 打开该项目 SQL Editor，先完整执行 `backend/001_asset_library.sql`，再依次执行 `supabase/migrations/20261031112854_icon_standards.sql` 与 `supabase/migrations/20261031125455_asset_taxonomy.sql`。初始脚本用于新项目，不要在已有项目反复执行。
 3. 在 Authentication 的 URL 配置中，将 Site URL 设置为 `https://xueyingz90.github.io/icon-lab/`，并允许该地址用于确认回跳。配置 Email 登录。邮件注册验证需要项目可用的邮件发送配置；试用时也可由项目管理员在 Auth Users 中创建已确认的测试用户。
 4. 在项目的 Connect / API Keys 位置找到 Project URL 与 Publishable key（通常以 `sb_publishable_` 开头）。旧的 anon key 也可使用。**不要使用 Secret / service_role key。**
 5. 使用个人保存的账号设置入口，展开“高级连接设置”，填写上述两个公开配置，保存，然后注册或登录工作台账号。工作台账号与 Supabase 管理后台账号是两套身份。
@@ -51,7 +53,7 @@ Project URL 和 Publishable key 可放进根目录 `cloud-config.js` 后发布�
 - 退出云端回到本地试用，云端失败不会静默改存本地。
 - 备份保存当前加载的资产，当前页面最多加载最近 500 项。导入合并到本地，保留已有资产，不覆盖，也不恢复完整历史版本。超过试点规模后，应升级分页、数据库备份和服务器端检索。
 - SVG 在展示、下载、导入时均校验；支持安全的 transform、渐变和内部裁剪引用；不支持脚本、事件、外部图片、外部引用与 CSS 样式表。
-- 新资产状态为“已登记 · 未审核”。此版本不冒充已实现审核与 iconfont 发布。
+- 新资产保存后可直接复用，显示“已保存”，不设置强制审核；iconfont 发布尚未实现。
 - 同步提交通过数据库事务执行；历史版本只能读，前端不能直接改表。
 - Supabase 保存后不等于拥有公司原始 Figma 文件访问权。点击来源仍受 Figma 自身权限控制。
 
@@ -74,7 +76,7 @@ npm test
 
 ## 本阶段之后
 
-Figma 单图标同步开发包已实现，见 [安装与验收](../figma-plugin/README.md)。复用已有 `il_save_asset`，不改数据库结构；采用当前后端的精确网络域名、仅本次运行的会话和显式更新确认。已完成自动化检查，真实 Figma 安装、SVG 导出及网络联调待用户验收。AI 生成、审核发布、复杂形变、MCP 尚未实现。
+Figma 单图标同步已由用户确认跑通；当前开发包新增资源库，见 [安装与验收](../figma-plugin/README.md)。继续复用已有 `il_save_asset`，本版只增加兼容的分类字段。采用现有网络域名、仅本次运行的会话和显式更新确认。新版上传回归和矢量插入需实机验收。AI 生成、审核发布、复杂形变和 MCP 不在本次范围。
 
 官方参考：
 - https://supabase.com/docs/guides/getting-started/api-keys

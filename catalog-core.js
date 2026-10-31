@@ -1,3 +1,4 @@
+import {normalizeClassification,classification,legacyPlatform,legacyVisualType} from './taxonomy.js';
 export const MAX_SVG_BYTES = 1024 * 1024;
 const elements = new Set('svg g path rect circle ellipse line polyline polygon defs linearGradient radialGradient stop clipPath mask title desc'.split(' '));
 const attrs = new Set('xmlns viewBox width height x y x1 x2 y1 y2 cx cy r rx ry d points fill stroke stroke-width stroke-linecap stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset fill-rule clip-rule opacity fill-opacity stroke-opacity transform id gradientUnits gradientTransform offset stop-color stop-opacity spreadMethod fx fy fr clip-path mask maskUnits maskContentUnits clipPathUnits preserveAspectRatio vector-effect'.split(' '));
@@ -74,7 +75,10 @@ export function normalizeMetadata(input) {
   const text = (value, max) => String(value || '').trim().slice(0, max);
   const name = text(input.name, 100); if (!name) throw Error('请填写图标名称。');
   const tags = Array.isArray(input.tags) ? input.tags : String(input.tags || '').split(/[,，、\n]/);
-  return {name, tags:[...new Set(tags.map(s => text(s, 30)).filter(Boolean))].slice(0, 12), platform:text(input.platform, 30) || '通用', visual_type:text(input.visual_type, 30) || '线性', state_name:text(input.state_name, 30) || '默认', source_url:validSource(input.source_url), note:text(input.note, 500)};
+  const dimensions=normalizeClassification(input);
+  const platform=text(input.platform,30)||(Object.hasOwn(input,'target_platform')?legacyPlatform(dimensions.target_platform):'通用');
+  const visual_type=text(input.visual_type,30)||(Object.hasOwn(input,'structure')?legacyVisualType(dimensions.structure):'线性');
+  return {name, tags:[...new Set(tags.map(s => text(s, 30)).filter(Boolean))].slice(0, 12), platform, visual_type,...dimensions,state_name:text(input.state_name, 30) || '默认', source_url:validSource(input.source_url), note:text(input.note, 500)};
 }
 export function matchesAsset(asset, query, platform = '', type = '') {
   const haystack = [asset.name, ...(asset.tags || []), asset.platform, asset.state_name].join(' ').toLocaleLowerCase();
@@ -87,7 +91,8 @@ export function localSave(records, metadata, svgInfo, hash, assetId = null, expe
   if (!previous && source_key) previous = records.find(a => a.source_key === source_key && a.platform === metadata.platform && a.visual_type === metadata.visual_type && a.state_name === metadata.state_name);
   if (!previous) previous = records.find(a => a.content_hash === hash && a.platform === metadata.platform && a.visual_type === metadata.visual_type && a.state_name === metadata.state_name);
   if (previous && assetId && expectedVersion !== previous.version) throw Error('版本已变化，请刷新后重试。');
-  const same = previous && previous.content_hash === hash && Object.entries(metadata).every(([key, value]) => JSON.stringify(previous[key]) === JSON.stringify(value));
+  const previousMetadata=previous&&{...previous,...classification(previous)};
+  const same = previous && previous.content_hash === hash && Object.entries(metadata).every(([key, value]) => JSON.stringify(previousMetadata[key]) === JSON.stringify(value));
   if (same) return {records, asset:previous, result:'unchanged'};
   if (previous && !assetId) return {records, asset:previous, result:'duplicate'};
   const revision = {id:crypto.randomUUID(), ...metadata, ...svgInfo, content_hash:hash, version:(previous?.version || 0) + 1, created_at:new Date().toISOString()};

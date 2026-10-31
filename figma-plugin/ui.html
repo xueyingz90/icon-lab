@@ -1,17 +1,58 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Icon Lab · Figma 同步</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Icon Lab · 同步与资源库</title>
 <style>
 .preview[data-background=dark]{background-color:#252a33;background-image:radial-gradient(#ffffff33 .7px,transparent .7px)}
 :root{color-scheme:light dark;--bg:var(--figma-color-bg,#fafafa);--panel:var(--figma-color-bg-secondary,#f2f3f5);--text:var(--figma-color-text,#24262d);--muted:var(--figma-color-text-secondary,#777d88);--line:var(--figma-color-border,#e1e3e8);--accent:var(--figma-color-bg-brand,#24262d);--on:var(--figma-color-text-onbrand,#fff)}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:12px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{padding:22px}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{font-size:17px;font-weight:700;letter-spacing:-.4px}.badge{color:var(--muted);font-size:10px;letter-spacing:1px}h1{font-size:22px;letter-spacing:-.6px;line-height:1.35;margin:0 0 8px}h2{font-size:13px;margin:0 0 12px}p{margin:8px 0}.muted,small{color:var(--muted)}section{margin-top:22px}label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:11px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:10px;border-radius:7px;min-width:0}textarea{resize:vertical}button{border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);padding:9px 12px;cursor:pointer}button:hover{background:var(--panel)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled{opacity:.45;cursor:default}.primary{background:var(--accent);color:var(--on);border-color:transparent}.primary:hover{filter:brightness(.92);background:var(--accent)}.wide{width:100%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}.account{border:1px solid var(--line);border-radius:10px;padding:14px}.account-head{display:flex;gap:12px;justify-content:space-between;align-items:center;overflow-wrap:anywhere}.text-button{border:0;padding:3px;color:var(--muted);font-size:11px}.selection{border:1px solid var(--line);border-radius:12px;overflow:hidden}.preview{min-height:140px;display:flex;align-items:center;justify-content:center;background:var(--panel);background-image:radial-gradient(#b7bbc244 .7px,transparent .7px);background-size:10px 10px}.preview img{width:64px;height:64px;object-fit:contain}.selection-meta{padding:12px 14px;display:flex;justify-content:space-between;gap:10px}.selection-meta strong{display:block;max-width:240px;overflow-wrap:anywhere}.selection-meta small{display:block;font-size:10px}.message{padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:14px}.message[data-tone=error]{border-color:#be725f;color:var(--figma-color-text-danger,#a54129)}.message[data-tone=success]{border-color:#539374}.duplicate{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:14px;margin:14px 0}.duplicate p{white-space:pre-wrap;overflow-wrap:anywhere}.footnote{font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;margin-top:18px}details{margin-top:12px}summary{color:var(--muted);cursor:pointer}details p{font-size:11px}footer{margin-top:20px;text-align:center}footer button{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
-</style></head><body><main>
-<header><span class="brand">ICON LAB<span class="muted"> / </span>同步</span><span class="badge">FIGMA → LIBRARY</span></header>
-<h1>让这次设计，<br>成为下次复用的起点。</h1><p class="muted">选中一个图标，检查预览后同步入库。</p>
-<section class="account"><p class="muted" style="margin-top:0;margin-bottom:12px">目标资产库：个人试点</p><form id="login-form"><h2>登录资产库</h2><p class="muted">使用已注册并确认邮箱的工作台账号。</p><div class="grid"><label class="full">邮箱<input id="email" type="email" autocomplete="username" required></label><label class="full">密码<input id="password" type="password" autocomplete="current-password" minlength="8" required></label></div><button class="primary wide" id="login" style="margin-top:12px">登录</button></form><div id="account" hidden><div class="account-head"><strong id="account-email"></strong><button id="logout" class="text-button" type="button">退出</button></div><label style="margin-top:12px">同步到工作空间<select id="workspace"></select></label><div class="actions"><small id="role"></small><button class="text-button" id="reload-spaces" type="button">刷新空间</button></div></div></section>
-<section><div class="selection"><div class="preview" id="preview"><span class="muted">请在画布选中 Frame 或 Component</span></div><div class="selection-meta"><div><strong id="selection-name">尚未读取图标</strong><small id="selection-meta">仅预览，不会自动上传</small></div><button id="preview-background" class="text-button" type="button" aria-pressed="false" aria-label="切换预览底色">深色底</button><button id="read" class="text-button" type="button">重新读取</button></div></div><p class="muted" id="selection-error" role="status"></p></section>
-<section><form id="asset-form"><div class="grid"><label class="full">图标名称 *<input name="name" id="name" maxlength="100" required></label><label>适用平台<select name="platform"><option>通用</option><option>App</option><option>AI 眼镜</option><option>其他设备</option></select></label><label>视觉类型<select name="visual_type"><option>线性</option><option>面型</option><option>多色</option><option>其他</option></select></label><label>图标状态 *<input name="state_name" value="默认" maxlength="30" required></label><label>语义标签<input name="tags" placeholder="收藏,书签" maxlength="380"></label><label class="full">当前 Figma 文件链接 *<input name="source_url" id="source" type="url" placeholder="https://www.figma.com/design/…" required maxlength="2000"></label><label class="full">备注<textarea name="note" rows="2" maxlength="500" placeholder="使用场景、适用限制"></textarea></label></div><details><summary>为什么要填写文件链接？</summary><p class="muted">普通插件无法自动获取文件 Key。请粘贴当前文件的链接，我们会自动关联当前选中节点。此链接只在本次插件会话中使用，请确认属于当前文件。</p></details><div class="duplicate" id="duplicate" hidden><strong>发现已有资产</strong><p id="duplicate-description"></p><p class="muted">更新将保留旧版本；若要登记不同状态，请取消后修改状态字段。</p><div class="actions"><button id="cancel-update" type="button">取消更新</button><button id="update" class="primary" type="button">确认更新版本</button></div></div><button type="submit" id="sync" aria-describedby="sync-hint" class="primary wide" style="margin-top:18px" disabled>确认同步到资产库</button><p id="sync-hint" class="muted" role="status" aria-live="polite"></p></form><p class="message" id="message" role="status" hidden></p><p class="footnote">仅同步当前预览，保存后可直接在资产库查看与复用。登录状态仅在本次插件运行中保留。</p></section>
-<footer><p class="muted" style="font-size:10px">v0.3.2 · 资产库统一版</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
+.plugin-tabs{display:flex;gap:6px;margin:20px 0 14px}.plugin-tabs button{flex:1;color:var(--muted)}.plugin-tabs button[aria-pressed=true]{background:var(--panel);color:var(--text);font-weight:600}.plugin-library-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.plugin-library-card{border:1px solid var(--line);border-radius:9px;overflow:hidden;min-width:0}.plugin-library-preview{height:88px;background:#a2a9b6;display:grid;place-items:center}.plugin-library-preview img{width:44px;height:44px;object-fit:contain}.plugin-library-card-content{padding:10px}.plugin-library-card strong{display:block;overflow-wrap:anywhere;font-size:12px}.plugin-library-card small{display:block;margin:5px 0 8px;line-height:1.6}.plugin-library-card button{width:100%;padding:7px;font-size:11px}#library-message{white-space:pre-wrap;overflow-wrap:anywhere}#library-more{margin-top:4px}</style></head><body><main>
+<header><span class="brand">ICON LAB<span class="muted"> / </span>资产</span><span class="badge">FIGMA ↔ LIBRARY</span></header>
+<h1>让这次设计，<br>成为下次复用的起点。</h1><p class="muted">同步图标入库，或从已有资产插入画布。</p>
+<section class="account"><p class="muted" style="margin-top:0;margin-bottom:12px">目标资产库：个人试点</p><form id="login-form"><h2>登录资产库</h2><p class="muted">使用已注册并确认邮箱的工作台账号。</p><div class="grid"><label class="full">邮箱<input id="email" type="email" autocomplete="username" required></label><label class="full">密码<input id="password" type="password" autocomplete="current-password" minlength="8" required></label></div><button class="primary wide" id="login" style="margin-top:12px">登录</button></form><div id="account" hidden><div class="account-head"><strong id="account-email"></strong><button id="logout" class="text-button" type="button">退出</button></div><label style="margin-top:12px">当前工作空间<select id="workspace"></select></label><div class="actions"><small id="role"></small><button class="text-button" id="reload-spaces" type="button">刷新空间</button></div></div></section>
+<div class="plugin-tabs" role="group" aria-label="插件功能"><button type="button" id="upload-tab" aria-pressed="true">上传图标</button><button type="button" id="library-tab" aria-pressed="false">资源库</button></div>
+<div id="upload-panel"><section><div class="selection"><div class="preview" id="preview"><span class="muted">请在画布选中 Frame 或 Component</span></div><div class="selection-meta"><div><strong id="selection-name">尚未读取图标</strong><small id="selection-meta">仅预览，不会自动上传</small></div><button id="preview-background" class="text-button" type="button" aria-pressed="false" aria-label="切换预览底色">深色底</button><button id="read" class="text-button" type="button">重新读取</button></div></div><p class="muted" id="selection-error" role="status"></p></section>
+<section><form id="asset-form"><div class="grid"><label class="full">图标名称 *<input name="name" id="name" maxlength="100" required></label><label>图形结构<select name="structure" id="upload-structure"></select></label><label>视觉风格<select name="visual_style" id="upload-style"></select></label><label>颜色模式<select name="color_mode" id="upload-color-mode"></select></label><label>适用平台<select name="target_platform" id="upload-platform"></select></label><label>图标状态 *<input name="state_name" value="默认" maxlength="30" required></label><label>语义标签<input name="tags" placeholder="收藏,书签" maxlength="380"></label><label class="full">当前 Figma 文件链接 *<input name="source_url" id="source" type="url" placeholder="https://www.figma.com/design/…" required maxlength="2000"></label><label class="full">备注<textarea name="note" rows="2" maxlength="500" placeholder="使用场景、适用限制"></textarea></label></div><details><summary>为什么要填写文件链接？</summary><p class="muted">普通插件无法自动获取文件 Key。请粘贴当前文件的链接，我们会自动关联当前选中节点。此链接只在本次插件会话中使用，请确认属于当前文件。</p></details><div class="duplicate" id="duplicate" hidden><strong>发现已有资产</strong><p id="duplicate-description"></p><p class="muted">更新将保留旧版本；若要登记不同状态，请取消后修改状态字段。</p><div class="actions"><button id="cancel-update" type="button">取消更新</button><button id="update" class="primary" type="button">确认更新版本</button></div></div><button type="submit" id="sync" aria-describedby="sync-hint" class="primary wide" style="margin-top:18px" disabled>确认同步到资产库</button><p id="sync-hint" class="muted" role="status" aria-live="polite"></p></form><p class="message" id="message" role="status" hidden></p><p class="footnote">仅同步当前预览，保存后可直接在资产库查看与复用。登录状态仅在本次插件运行中保留。</p></section>
+</div><section id="library-panel" hidden><div class="grid"><label class="full">图标名称<input type="search" id="library-query" placeholder="搜索已上传图标"></label><label>图形结构<select id="library-structure"></select></label><label>视觉风格<select id="library-style"></select></label></div><div class="actions"><button id="library-search" type="button" class="primary">搜索</button><button id="library-reset" type="button">重置</button></div><p id="library-message" role="status" class="muted">登录后查询当前空间的已有资产。</p><div id="library-results" class="plugin-library-grid"></div><button type="button" id="library-more" class="wide" hidden>加载更多</button></section>
+<footer><p class="muted" style="font-size:10px">v0.4.0 · 分类与资源库</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
 </main><script>"use strict";
 (()=>{
+// taxonomy.js
+// Independent optional dimensions. Missing legacy information stays unclassified.
+const TAXONOMY={
+  structure:[['Outline','线性'],['Filled','面型'],['Hybrid','线面结合']],
+  visual_style:[['Flat','扁平'],['Gradient','渐变'],['Glassmorphism','毛玻璃'],['Volumetric','立体']],
+  color_mode:[['Monochrome','单色'],['Duotone','双色'],['Multicolor','多色']],
+  target_platform:[['App','App'],['Glasses','眼镜'],['Other','其他']]
+};
+const UNCLASSIFIED='__unclassified__';
+function legacyStructure(value){return ({'线性':'Outline','面型':'Filled',Outline:'Outline',Filled:'Filled',Hybrid:'Hybrid'})[value]||null;}
+function legacyColorMode(value){return ({'单色':'Monochrome','双色':'Duotone','多色':'Multicolor',Monochrome:'Monochrome',Duotone:'Duotone',Multicolor:'Multicolor'})[value]||null;}
+function legacyTargetPlatform(value){return ({App:'App','AI 眼镜':'Glasses',Glasses:'Glasses','其他设备':'Other',Other:'Other'})[value]||null;}
+function legacyPlatform(value){return ({App:'App',Glasses:'AI 眼镜',Other:'其他设备'})[value]||'通用';}
+function legacyVisualType(value){return ({Outline:'线性',Filled:'面型',Hybrid:'其他'})[value]||'其他';}
+function classification(asset) {
+  const fallback={structure:legacyStructure(asset.visual_type),visual_style:null,color_mode:legacyColorMode(asset.visual_type),target_platform:legacyTargetPlatform(asset.platform)};
+  return Object.fromEntries(Object.keys(TAXONOMY).map(key=>[key,Object.hasOwn(asset,key)?TAXONOMY[key].some(([v])=>v===asset[key])?asset[key]:null:fallback[key]]));
+}
+function normalizeClassification(input) {
+  return Object.fromEntries(Object.keys(TAXONOMY).map(key=>{
+    if(!Object.hasOwn(input,key))return [key,classification(input)[key]];
+    const value=input[key];if(value===null || value===undefined || value==='')return [key,null];
+    if(!TAXONOMY[key].some(([v])=>v===value))throw Error('分类值无效：'+key);
+    return [key,value];
+  }));
+}
+function matchesClassification(asset,filters={}) {
+  const values=classification(asset);
+  return Object.keys(TAXONOMY).every(key=>!filters[key] || (filters[key]===UNCLASSIFIED?values[key]===null:values[key]===filters[key]));
+}
+function classificationLabel(key,value){const item=TAXONOMY[key]?.find(([v])=>v===value);return item?(item[0]===item[1]?item[0]:item.join(' · ')):'未分类';}
+function populateClassificationSelect(select,key,filter=false) {
+  select.replaceChildren();
+  const add=(value,label)=>{const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);};
+  add('',filter?'全部':'未分类');if(filter)add(UNCLASSIFIED,'未分类');
+  TAXONOMY[key].forEach(([value,label])=>add(value,value===label?value:value+' · '+label));
+}
+
+
 // catalog-core.js
 const MAX_SVG_BYTES = 1024 * 1024;
 const elements = new Set('svg g path rect circle ellipse line polyline polygon defs linearGradient radialGradient stop clipPath mask title desc'.split(' '));
@@ -89,7 +130,10 @@ function normalizeMetadata(input) {
   const text = (value, max) => String(value || '').trim().slice(0, max);
   const name = text(input.name, 100); if (!name) throw Error('请填写图标名称。');
   const tags = Array.isArray(input.tags) ? input.tags : String(input.tags || '').split(/[,，、\n]/);
-  return {name, tags:[...new Set(tags.map(s => text(s, 30)).filter(Boolean))].slice(0, 12), platform:text(input.platform, 30) || '通用', visual_type:text(input.visual_type, 30) || '线性', state_name:text(input.state_name, 30) || '默认', source_url:validSource(input.source_url), note:text(input.note, 500)};
+  const dimensions=normalizeClassification(input);
+  const platform=text(input.platform,30)||(Object.hasOwn(input,'target_platform')?legacyPlatform(dimensions.target_platform):'通用');
+  const visual_type=text(input.visual_type,30)||(Object.hasOwn(input,'structure')?legacyVisualType(dimensions.structure):'线性');
+  return {name, tags:[...new Set(tags.map(s => text(s, 30)).filter(Boolean))].slice(0, 12), platform, visual_type,...dimensions,state_name:text(input.state_name, 30) || '默认', source_url:validSource(input.source_url), note:text(input.note, 500)};
 }
 function matchesAsset(asset, query, platform = '', type = '') {
   const haystack = [asset.name, ...(asset.tags || []), asset.platform, asset.state_name].join(' ').toLocaleLowerCase();
@@ -102,7 +146,8 @@ function localSave(records, metadata, svgInfo, hash, assetId = null, expectedVer
   if (!previous && source_key) previous = records.find(a => a.source_key === source_key && a.platform === metadata.platform && a.visual_type === metadata.visual_type && a.state_name === metadata.state_name);
   if (!previous) previous = records.find(a => a.content_hash === hash && a.platform === metadata.platform && a.visual_type === metadata.visual_type && a.state_name === metadata.state_name);
   if (previous && assetId && expectedVersion !== previous.version) throw Error('版本已变化，请刷新后重试。');
-  const same = previous && previous.content_hash === hash && Object.entries(metadata).every(([key, value]) => JSON.stringify(previous[key]) === JSON.stringify(value));
+  const previousMetadata=previous&&{...previous,...classification(previous)};
+  const same = previous && previous.content_hash === hash && Object.entries(metadata).every(([key, value]) => JSON.stringify(previousMetadata[key]) === JSON.stringify(value));
   if (same) return {records, asset:previous, result:'unchanged'};
   if (previous && !assetId) return {records, asset:previous, result:'duplicate'};
   const revision = {id:crypto.randomUUID(), ...metadata, ...svgInfo, content_hash:hash, version:(previous?.version || 0) + 1, created_at:new Date().toISOString()};
@@ -153,6 +198,17 @@ class CloudClient {
   async role(workspaceId, userId) {const rows=await this.request('/rest/v1/il_members?select=role&workspace_id=eq.' + encodeURIComponent(workspaceId) + '&user_id=eq.' + encodeURIComponent(userId)); return rows[0]?.role || 'viewer';}
   assets(workspaceId) {return this.request('/rest/v1/il_assets?select=*&workspace_id=eq.' + encodeURIComponent(workspaceId) + '&order=updated_at.desc&limit=501');}
   revisions(assetId) {return this.request('/rest/v1/il_revisions?select=*&asset_id=eq.' + encodeURIComponent(assetId) + '&order=version.desc&limit=100');}
+  standards(workspaceId) {return this.request('/rest/v1/il_standards?select=*&workspace_id=eq.'+encodeURIComponent(workspaceId)+'&order=platform.asc');}
+  searchAssets(workspaceId,{name='',structure='',visual_style='',color_mode='',target_platform='',offset=0,limit=40}={}) {
+    if(!workspaceId)throw Error('请先选择工作空间。');
+    const query=new URLSearchParams({select:'*',workspace_id:'eq.'+workspaceId,order:'updated_at.desc,id.desc',limit:String(Math.min(100,Math.max(1,limit))),offset:String(Math.max(0,offset))});
+    const text=String(name).trim().slice(0,100);if(text)query.set('name','ilike.%'+text.replace(/[\\%_*]/g,'\\$&')+'%');
+    for(const [key,value] of Object.entries({structure,visual_style,color_mode,target_platform})){
+      if(!value)continue;if(value===UNCLASSIFIED)query.set(key,'is.null');
+      else if(TAXONOMY[key].some(([v])=>v===value))query.set(key,'eq.'+value);else throw Error('筛选条件无效。');
+    }
+    return this.request('/rest/v1/il_assets?'+query.toString());
+  }
 }
 
 
@@ -204,6 +260,92 @@ function syncError(error) {
 }
 
 
+// figma-plugin/src/library.js
+
+function prepareLibrarySVG(asset) {
+  const format=String(asset.format||asset.mime_type||asset.file_type||'').toLowerCase();
+  if(format&&!['svg','image/svg+xml'].includes(format))throw Error('该资源为 '+format+'，当前仅支持插入 SVG 矢量，请使用网页下载原资源。');
+  if(typeof asset.svg!=='string'||!/^\s*(?:<\?xml[^>]*>\s*)?<svg(?:\s|>)/i.test(asset.svg))throw Error('此资源没有可插入的 SVG 内容；PNG 等图片暂不支持插入。');
+  return {svg:cleanSVG(asset.svg).svg,name:String(asset.name||'Icon Lab 图标').slice(0,100),assetId:String(asset.id||'')};
+}
+function createPluginLibrary({client,context,send,onSessionExpired=()=>{}}) {
+  const $=id=>document.getElementById(id);
+  let active=false,key='',generation=0,items=[],offset=0,hasMore=false,loading=false,debounce,insertCounter=0;
+  const pending=new Map(),pageSize=24;
+  const currentKey=()=>client.session?.access_token&&context().workspace?client.config.url+':'+client.session.user?.id+':'+context().workspace:'';
+  const message=text=>$('library-message').textContent=text;
+  populateClassificationSelect($('library-structure'),'structure',true);populateClassificationSelect($('library-style'),'visual_style',true);
+  function filters(){return {name:$('library-query').value,structure:$('library-structure').value,visual_style:$('library-style').value};}
+  function render(){
+    const grid=$('library-results');grid.replaceChildren();
+    for(const asset of items){
+      const card=document.createElement('article');card.className='plugin-library-card';
+      const preview=document.createElement('div');preview.className='plugin-library-preview';let prepared,error;
+      try{prepared=prepareLibrarySVG(asset);const img=document.createElement('img');img.alt=asset.name;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(prepared.svg);preview.append(img);}catch(e){error=e.message;preview.textContent='暂不支持预览';}
+      const content=document.createElement('div');content.className='plugin-library-card-content';
+      const title=document.createElement('strong');title.textContent=asset.name;
+      const metadata=document.createElement('small'),dims=classification(asset);metadata.textContent=classificationLabel('structure',dims.structure)+' / '+classificationLabel('visual_style',dims.visual_style);
+      const insert=document.createElement('button');insert.type='button';insert.textContent='插入画布';insert.disabled=!!error||pending.size>0||!currentKey();
+      const assetKey=key;
+      insert.onclick=()=>insertAsset(prepared,assetKey);
+      content.append(title,metadata);if(error){const hint=document.createElement('small');hint.textContent=error;content.append(hint);}content.append(insert);card.append(preview,content);grid.append(card);
+    }
+    $('library-more').hidden=!hasMore;$('library-more').disabled=loading;
+    $('library-search').disabled=loading||!currentKey();
+  }
+  async function load(reset=true){
+    clearTimeout(debounce);const requestKey=currentKey();
+    if(!requestKey){items=[];hasMore=false;loading=false;render();message('请先登录并选择工作空间。');return;}
+    if(!reset&&loading)return;
+    const request=++generation;key=requestKey;
+    if(reset){items=[];offset=0;hasMore=false;}loading=true;render();message('正在查询已有资产…');
+    try{
+      const rows=await client.searchAssets(context().workspace,{...filters(),offset,limit:pageSize});
+      if(request!==generation||requestKey!==currentKey())return;
+      if(!Array.isArray(rows))throw Error('资源库返回格式异常。');
+      offset+=rows.length;hasMore=rows.length===pageSize;
+      items=[...items,...rows.filter(row=>!items.some(old=>old.id===row.id))];
+      message(items.length?`已加载 ${items.length} 个资产；点击插入可在画布继续编辑。`:'没有符合条件的已上传图标，可调整筛选或重置。');
+    }catch(e){if(request!==generation)return;if(requestKey!==currentKey()){if(!client.session)onSessionExpired();contextChanged();return;}hasMore=false;message('资源库查询失败：'+e.message+'。请确认分类迁移已部署后重试。');}
+    finally{if(request===generation){loading=false;render();}}
+  }
+  function contextChanged(){
+    const next=currentKey();if(next===key)return;
+    ++generation;key=next;items=[];offset=0;hasMore=false;loading=false;render();
+    if(active&&next)load();else message(next?'打开资源库后查询当前空间。':'请先登录并选择工作空间。');
+  }
+  function switchTab(library){
+    active=library;$('library-panel').hidden=!library;$('upload-panel').hidden=library;
+    $('library-tab').setAttribute('aria-pressed',String(library));$('upload-tab').setAttribute('aria-pressed',String(!library));
+    if(library){contextChanged();if(currentKey()&&!loading)load();else if(!currentKey())message('请先登录并选择工作空间。');}
+  }
+  async function insertAsset(prepared,assetKey){
+    if(!prepared)return;
+    if(!currentKey()||assetKey!==currentKey()){message('账号或空间已变化，请重新查询资源库。');return;}
+    if(pending.size){message('正在插入，请稍候。');return;}
+    const requestId='library-insert-'+(++insertCounter);
+    message('正在插入 '+prepared.name+'…');
+    const timer=setTimeout(()=>{pending.delete(requestId);render();message('尚未收到插入结果，请先检查画布，避免重复插入。');},15000);
+    pending.set(requestId,{timer,key:assetKey});render();
+    send({type:'insert-svg',requestId,...prepared});
+  }
+  function handleMessage(data){
+    if(data.type!=='insert-result')return;
+    const request=pending.get(data.requestId);if(!request)return;
+    clearTimeout(request.timer);pending.delete(data.requestId);render();
+    if(request.key!==currentKey())return;
+    message(data.ok?'已插入并选中图标，可在 Figma 中编辑矢量图层。':'插入失败：'+data.message);
+  }
+  $('library-tab').onclick=()=>switchTab(true);$('upload-tab').onclick=()=>switchTab(false);
+  $('library-search').onclick=()=>load();$('library-more').onclick=()=>load(false);
+  $('library-query').oninput=()=>{clearTimeout(debounce);++generation;items=[];hasMore=false;loading=false;render();debounce=setTimeout(()=>load(),250);};
+  $('library-query').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();load();}};
+  ['library-structure','library-style'].forEach(id=>$(id).onchange=()=>load());
+  $('library-reset').onclick=()=>{$('library-query').value='';$('library-structure').value='';$('library-style').value='';load();};
+  render();return {contextChanged,handleMessage};
+}
+
+
 // figma-plugin/src/ui.js
 
 const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
@@ -213,6 +355,8 @@ const model={selection:null,spaces:[],workspace:'',role:'viewer',busy:false,pend
 const verifications=new Map();let requestCounter=0;
 let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
+for(const [key,id] of [['structure','upload-structure'],['visual_style','upload-style'],['color_mode','upload-color-mode'],['target_platform','upload-platform']])populateClassificationSelect($(id),key);
+const library=createPluginLibrary({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>{model.spaces=[];model.workspace='';model.role='viewer';clearPending();controls();}});
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
 function clearPending() {model.pending=null;$('duplicate').hidden=true;}
 function watchRead() {
@@ -242,11 +386,12 @@ async function task(action) {
   if(model.busy)return;
   model.busy=true;message('');controls();
   try {await action();}catch(e){if(/版本已变化/.test(e.message || ''))clearPending();message(syncError(e),'error');}
-  finally {model.busy=false;if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}controls();}
+  finally {model.busy=false;if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}controls();library.contextChanged();}
 }
 async function chooseSpace() {
   clearPending();model.workspace=$('workspace').value;
   model.role=model.workspace?await client.role(model.workspace,client.session.user.id):'viewer';
+  library.contextChanged();
 }
 async function loadSpaces() {
   model.spaces=await client.workspaces();
@@ -310,7 +455,8 @@ window.addEventListener('message',event=>{
   // Figma relays do not guarantee event.source === parent. Match the current
   // plugin runtime's bridge ID instead of depending on Window identity.
   const data=event.data?.pluginMessage;
-  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error'].includes(data.type))return;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result'].includes(data.type))return;
+  if(data.type==='insert-result'){library.handleMessage(data);return;}
   if(data.type==='selection-loading'){
     watchRead();
     model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();

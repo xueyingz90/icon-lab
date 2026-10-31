@@ -1,5 +1,5 @@
 {
-  "name": "Icon Lab · 单图标同步",
+  "name": "Icon Lab · 同步与资源库",
   "id": "icon-lab-single-icon-sync-dev",
   "api": "1.0.0",
   "main": "code.js",
@@ -8,6 +8,6 @@
   "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": ["https://blolhaacvmciirmiovdo.supabase.co"],
-    "reasoning": "仅在用户登录并确认同步后，将所选图标提交至 Icon Lab 资产库。"
+    "reasoning": "登录后查询同一 Icon Lab 资产库；仅在用户确认同步时上传所选图标。插入矢量在本地画布完成。"
   }
 }
