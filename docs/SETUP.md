@@ -2,7 +2,18 @@
 
 此版本保留原动效工作台，新增资产登记、搜索筛选、详情、来源、历史版本、重复提示、账号与工作空间。
 
-## 需要你操作的部分
+## 当前部署状态（2026-10-31）
+
+个人原型项目 icon-lab 已创建，表与版本管理 RPC 已部署，cloud-config.js 已写入公开连接配置。真实数据库的事务回滚测试通过，安全 advisors 无告警。性能检查仅提示新建索引尚未使用，待真实负载后再评估：[官方说明](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)。
+
+你现在只需：
+1. 打开 https://supabase.com/dashboard/project/blolhaacvmciirmiovdo/auth/url-configuration ，把 Site URL 设置为 https://xueyingz90.github.io/icon-lab/ 并保存。如需填写 Redirect URLs，也加入同一完整地址。
+2. 工作台点击“连接云端”，无需再填 Project URL 和公钥，使用邮箱和密码注册。当前 Email 登录已启用、注册已开放、邮箱确认已开启，需要你本人打开确认邮件；注册后的账号与 Supabase 管理后台账号相互独立。
+3. 确认邮箱后返回工作台登录。再在第二台电脑用同一工作台账号登录，验收同步。
+
+以下是从零部署或重新建立项目时使用的备用说明，不需要对已部署项目重复执行建表脚本。
+
+## 备用：从零部署步骤
 
 优先启用并连接 Supabase。连接确认后，可由开发助手继续检查项目并执行数据库部署。账号登录、创建项目时的条款或费用确认、邮箱验证需要你本人完成。
 

@@ -1,5 +1,8 @@
 -- Run once in a new Supabase project's SQL Editor. All writes go through checked RPCs.
 begin;
+create schema il_private;
+revoke all on schema il_private from public,anon,authenticated;
+grant usage on schema il_private to authenticated;
 create table public.il_workspaces (
  id uuid primary key default gen_random_uuid(), name text not null check(length(name) between 1 and 80),
  owner_id uuid not null references auth.users(id), created_at timestamptz not null default now(), unique(owner_id,name)
@@ -24,27 +27,27 @@ create table public.il_revisions (
  metadata jsonb not null, svg text not null, width numeric not null, height numeric not null, content_hash text not null,
  created_by uuid not null references auth.users(id), created_at timestamptz not null default now(), unique(asset_id,version)
 );
-create function public.il_role(p_workspace_id uuid) returns text language sql stable security definer set search_path='' as $$
- select role from public.il_members where workspace_id=p_workspace_id and user_id=auth.uid()
+create function il_private.il_role(p_workspace_id uuid) returns text language sql stable security definer set search_path='' as $$
+ select role from public.il_members where workspace_id=p_workspace_id and (select auth.uid()) is not null and user_id=(select auth.uid())
 $$;
 alter table public.il_workspaces enable row level security;
 alter table public.il_members enable row level security;
 alter table public.il_assets enable row level security;
 alter table public.il_revisions enable row level security;
-create policy il_workspace_read on public.il_workspaces for select to authenticated using (public.il_role(id) is not null);
-create policy il_member_read on public.il_members for select to authenticated using (public.il_role(workspace_id) is not null);
-create policy il_asset_read on public.il_assets for select to authenticated using (public.il_role(workspace_id) is not null);
+create policy il_workspace_read on public.il_workspaces for select to authenticated using (il_private.il_role(id) is not null);
+create policy il_member_read on public.il_members for select to authenticated using (il_private.il_role(workspace_id) is not null);
+create policy il_asset_read on public.il_assets for select to authenticated using (il_private.il_role(workspace_id) is not null);
 create policy il_revision_read on public.il_revisions for select to authenticated using (
- exists(select 1 from public.il_assets a where a.id=asset_id and public.il_role(a.workspace_id) is not null)
+ exists(select 1 from public.il_assets a where a.id=asset_id and il_private.il_role(a.workspace_id) is not null)
 );
 revoke all on public.il_workspaces, public.il_members, public.il_assets, public.il_revisions from public, anon, authenticated;
 grant select on public.il_workspaces, public.il_members, public.il_assets, public.il_revisions to authenticated;
 
-create function public.il_create_workspace(p_name text default '我的图标库') returns uuid language plpgsql security definer set search_path='' as $$
+create function il_private.il_create_workspace(p_name text default '我的图标库') returns uuid language plpgsql security definer set search_path='' as $$
 declare w uuid; u uuid:=auth.uid();
 begin
  if u is null then raise exception '请先登录。'; end if;
- if length(trim(p_name)) not between 1 and 80 then raise exception '工作空间名称需为 1–80 字。'; end if;
+ if p_name is null or length(trim(p_name)) not between 1 and 80 then raise exception '工作空间名称需为 1–80 字。'; end if;
  perform pg_advisory_xact_lock(hashtextextended(u::text,0));
  select id into w from public.il_workspaces where owner_id=u and name=trim(p_name);
  if w is null then
@@ -54,11 +57,12 @@ begin
  return w;
 end $$;
 
-create function public.il_save_asset(p_workspace_id uuid, p_meta jsonb, p_svg text, p_asset_id uuid default null, p_expected_version int default null)
+create function il_private.il_save_asset(p_workspace_id uuid, p_meta jsonb, p_svg text, p_asset_id uuid default null, p_expected_version int default null)
 returns jsonb language plpgsql security definer set search_path='' as $$
 declare a public.il_assets; duplicate public.il_assets; m jsonb; h text; sk text; t text[]; v int; result text; u uuid:=auth.uid();
 begin
- if coalesce(public.il_role(p_workspace_id),'') not in ('owner','editor') then raise exception '没有此工作空间的编辑权限。'; end if;
+ if u is null then raise exception '请先登录。'; end if;
+ if coalesce(il_private.il_role(p_workspace_id),'') not in ('owner','editor') then raise exception '没有此工作空间的编辑权限。'; end if;
  if p_svg is null or octet_length(p_svg)>1048576 or p_svg !~ '^<svg' then raise exception 'SVG 无效或超过 1MB。'; end if;
  if jsonb_typeof(p_meta->'tags') is distinct from 'array' then raise exception '标签格式无效。'; end if;
  select coalesce(array_agg(value), '{}') into t from jsonb_array_elements_text(p_meta->'tags');
@@ -99,17 +103,29 @@ begin
 end $$;
 
 -- Grants access to an already-registered account; does not send invitation emails.
-create function public.il_add_member(p_workspace_id uuid, p_email text, p_role text default 'viewer') returns void language plpgsql security definer set search_path='' as $$
+create function il_private.il_add_member(p_workspace_id uuid, p_email text, p_role text default 'viewer') returns void language plpgsql security definer set search_path='' as $$
 declare u uuid;
 begin
- if public.il_role(p_workspace_id) is distinct from 'owner' then raise exception '只有空间所有者可以添加成员。'; end if;
+ if auth.uid() is null then raise exception '请先登录。'; end if;
+ if il_private.il_role(p_workspace_id) is distinct from 'owner' then raise exception '只有空间所有者可以添加成员。'; end if;
  if p_role not in ('editor','viewer') then raise exception '角色仅支持 editor 或 viewer。'; end if;
  select id into u from auth.users where lower(email)=lower(trim(p_email));
  if u is null then raise exception '此邮箱尚未注册，请先让对方注册工作台账号。'; end if;
  if exists(select 1 from public.il_members where workspace_id=p_workspace_id and user_id=u and role='owner') then raise exception '不能修改空间所有者。'; end if;
  insert into public.il_members values(p_workspace_id,u,p_role) on conflict(workspace_id,user_id) do update set role=excluded.role;
 end $$;
-revoke all on function public.il_role(uuid), public.il_create_workspace(text), public.il_save_asset(uuid,jsonb,text,uuid,int), public.il_add_member(uuid,text,text) from public,anon,authenticated;
-grant execute on function public.il_role(uuid), public.il_create_workspace(text), public.il_save_asset(uuid,jsonb,text,uuid,int), public.il_add_member(uuid,text,text) to authenticated;
+-- Expose invoker wrappers only. Privileged implementations stay outside the Data API schema.
+create function public.il_create_workspace(p_name text default '我的图标库') returns uuid
+language sql security invoker set search_path='' as $$ select il_private.il_create_workspace(p_name) $$;
+create function public.il_save_asset(p_workspace_id uuid, p_meta jsonb, p_svg text, p_asset_id uuid default null, p_expected_version int default null) returns jsonb
+language sql security invoker set search_path='' as $$ select il_private.il_save_asset(p_workspace_id,p_meta,p_svg,p_asset_id,p_expected_version) $$;
+create function public.il_add_member(p_workspace_id uuid, p_email text, p_role text default 'viewer') returns void
+language sql security invoker set search_path='' as $$ select il_private.il_add_member(p_workspace_id,p_email,p_role) $$;
+revoke all on function il_private.il_role(uuid), il_private.il_create_workspace(text), il_private.il_save_asset(uuid,jsonb,text,uuid,int), il_private.il_add_member(uuid,text,text), public.il_create_workspace(text), public.il_save_asset(uuid,jsonb,text,uuid,int), public.il_add_member(uuid,text,text) from public,anon,authenticated;
+grant execute on function il_private.il_role(uuid), il_private.il_create_workspace(text), il_private.il_save_asset(uuid,jsonb,text,uuid,int), il_private.il_add_member(uuid,text,text), public.il_create_workspace(text), public.il_save_asset(uuid,jsonb,text,uuid,int), public.il_add_member(uuid,text,text) to authenticated;
+create index il_members_by_user on public.il_members(user_id,workspace_id);
+create index il_assets_by_hash on public.il_assets(workspace_id,content_hash,platform,visual_type,state_name);
+create index il_assets_by_creator on public.il_assets(created_by);
+create index il_revisions_by_creator on public.il_revisions(created_by);
 notify pgrst, 'reload schema';
 commit;

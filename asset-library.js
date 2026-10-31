@@ -1,7 +1,7 @@
 import {basicIcons} from './library.js';
 import {cleanSVG, normalizeMetadata, sourceKey, sha256, matchesAsset, localSave} from './catalog-core.js';
 import {CloudClient, validateConfig} from './cloud-client.js';
-import {cloudConfig} from './cloud-config.js';
+import {cloudConfig} from './cloud-config.js?v=20261031-cloud-1';
 
 const $ = id => document.getElementById(id);
 const LOCAL_KEY = 'iconlab.catalog.local.v1', CONFIG_KEY = 'iconlab.cloud.config.v1';
