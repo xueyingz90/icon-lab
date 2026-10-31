@@ -49,3 +49,7 @@ AI、复杂动效、外部平台同步按证据分阶段投入。
 
 ## 首次云端任务提示词
 请阅读 docs/PROJECT_CONTEXT.md，检查仓库源码，先概述现有功能、限制与下一步。先启动静态预览并验证图标库和状态动效，不改产品功能。后续按用户指定的范围开发，并把重要进度写入 docs/DEV_LOG.md。
+
+
+## 2026-10-31 更新：资产库基础版
+新增 asset-library.js / catalog-core.js / cloud-client.js。已实现本地资产登记与检索、详情、版本、重复提示、更新冲突检测，并接入 Supabase 账号与共享空间 API。cloud-config.js 默认留空，实际云端保存需要完成 docs/SETUP.md 中的数据库与认证配置。迁移脚本在 backend/001_asset_library.sql。原动效模块保持独立本地存储。7 项自动化测试通过，线上 Auth、邮件与跨电脑同步尚待用户连接服务后验收。当前阶段与下一步以 docs/DEV_LOG.md 为准。
