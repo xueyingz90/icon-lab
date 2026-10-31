@@ -81,3 +81,35 @@ test('failed local persistence is reported and can be disabled without losing th
  app.d.getElementById('remember-session').checked=false;app.d.getElementById('remember-session').dispatchEvent(new app.w.Event('change'));await wait(()=>!app.d.getElementById('login').disabled);assert.match(app.d.getElementById('session-status').textContent,/已清除/);assert.equal(app.d.getElementById('account').hidden,false);
  }finally{await app.close();}
 });
+
+test('login failures stay visible next to login on the library tab, with actionable errors and no saved credentials',async()=>{
+ const failures=[
+  {status:400,body:{message:'Invalid login credentials'},expected:/邮箱或密码不正确/},
+  {status:400,body:{message:'Email not confirmed'},expected:/邮箱尚未确认/},
+  {status:429,body:{message:'rate limit'},expected:/过于频繁/},
+  {status:503,body:{message:'upstream unavailable'},expected:/暂时不可用/},
+  {error:new TypeError('Failed to fetch'),expected:/无法连接资产库/},
+  {error:Object.assign(Error('request timed out'),{name:'TimeoutError'}),expected:/连接超时/}
+ ];
+ for(const failure of failures){
+  const storage=new Map(),server=backend(),baseFetch=server.fetch.bind(server);server.fetch=async(url,options)=>{if(url.includes('grant_type=password')){if(failure.error)throw failure.error;return new Response(JSON.stringify(failure.body),{status:failure.status});}return baseFetch(url,options);};
+  const app=await openPlugin(storage,server);
+  try{
+   const {d,w}=app;d.getElementById('library-tab').click();d.getElementById('email').value='test@example.com';d.getElementById('password').value='private-password';d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+   await wait(()=>!d.getElementById('login').disabled);const notice=d.getElementById('account-message');
+   assert.equal(notice.hidden,false);assert.equal(notice.closest('#upload-panel'),null);assert.equal(d.getElementById('library-panel').hidden,false);assert.match(notice.textContent,failure.expected);assert.equal(notice.getAttribute('role'),'alert');assert.equal(d.getElementById('login').textContent,'登录');assert.doesNotMatch(notice.textContent,/private-password/);assert.equal(storage.size,0);
+  }finally{await app.close();}
+ }
+});
+
+test('login shows progress immediately and selection updates cannot hide it; success remains visible in library mode',async()=>{
+ const server=backend(),baseFetch=server.fetch.bind(server);let finish;
+ server.fetch=async(url,options)=>url.includes('grant_type=password')?new Promise(resolve=>finish=resolve):baseFetch(url,options);
+ const app=await openPlugin(new Map(),server);
+ try{
+  const {d,w}=app;d.getElementById('library-tab').click();d.getElementById('email').value='test@example.com';d.getElementById('password').value='private-password';d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+  assert.equal(d.getElementById('login').textContent,'正在登录…');assert.equal(d.getElementById('login').disabled,true);assert.equal(d.getElementById('login-form').getAttribute('aria-busy'),'true');assert.match(d.getElementById('account-message').textContent,/正在连接/);
+  app.figma.ui.onmessage({type:'capture',bridgeId:app.bridgeId});await new Promise(r=>setTimeout(r,5));assert.equal(d.getElementById('account-message').hidden,false);assert.match(d.getElementById('account-message').textContent,/正在连接/);
+  finish(new Response(JSON.stringify(token())));await wait(()=>!d.getElementById('login').disabled);assert.match(d.getElementById('account-message').textContent,/已登录/);assert.equal(d.getElementById('account-message').dataset.tone,'success');assert.equal(d.getElementById('account-message').hidden,false);assert.equal(d.getElementById('library-panel').hidden,false);
+ }finally{await app.close();}
+});
