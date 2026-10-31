@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+const require=createRequire(path.join(process.env.ICONLAB_TEST_DEPS || process.cwd(),'package.json'));
+const {DOMParser,XMLSerializer}=require('@xmldom/xmldom');globalThis.DOMParser=DOMParser;globalThis.XMLSerializer=XMLSerializer;
+const {EXAMPLE_STANDARD,normalizeStandard,normalizeColor,checkSVGStandard,applicableStandard}=await import('../standards-core.js');
+const profile=(changes={})=>({id:'spec',platform:'通用',version:2,definition:{...EXAMPLE_STANDARD,...changes}});
+const svg=(body,attrs='')=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ${attrs}>${body}</svg>`;
+const status=(report,id)=>report.items.find(i=>i.id===id)?.status;
+test('standards validate numeric ranges, switches, palettes and schema; examples are never applied implicitly',()=>{
+ const s=normalizeStandard({...EXAMPLE_STANDARD,colors:'#fff, currentColor',stroke_widths:'1.5, 2'});
+ assert.deepEqual(s.colors,['#ffffff','currentColor']);assert.deepEqual(s.stroke_widths,[1.5,2]);
+ for(const change of [{schema_version:2},{width:0},{height:Infinity},{safe_inset:12},{colors:['var(--x)']},{stroke_widths:[]},{colors_enabled:'true'}])assert.throws(()=>normalizeStandard({...EXAMPLE_STANDARD,...change}));
+ assert.equal(normalizeColor('rgb(255 255 255 / 50%)'),'#ffffff');assert.equal(normalizeColor('rgba(0,0,0,0)'),'none');
+ const unconfigured=checkSVGStandard(svg('<circle cx="12" cy="12" r="7"/>'));assert.equal(unconfigured.status,'unconfigured');
+ assert.equal(status(checkSVGStandard(svg('<script/>'),profile()),'safety'),'warning');
+ assert.equal(applicableStandard([profile(),{...profile(),platform:'App',version:3}],'App').version,3);
+});
+test('stroke and paint checks respect inherited values, default fill, opacity and RGB aliases',()=>{
+ const good=checkSVGStandard(svg('<g stroke="rgb(48,52,59)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12L20 12"/></g>'),profile());
+ assert.equal(good.status,'pass');
+ assert.equal(status(checkSVGStandard(svg('<rect x="4" y="4" width="16" height="16"/>'),profile()),'colors'),'warning');
+ const hidden=checkSVGStandard(svg('<g opacity="0"><rect width="24" height="24" fill="red"/></g><circle cx="12" cy="12" r="7" fill="#30343b"/>'),profile({stroke_enabled:false}));
+ assert.equal(status(hidden,'colors'),'pass');assert.equal(status(hidden,'safe'),'pass');
+ assert.equal(status(checkSVGStandard(svg('<circle cx="12" cy="12" r="7" fill="#30343b"/>'),profile()),'stroke'),'manual');
+ const scaled=checkSVGStandard(svg('<path d="M2 6L10 6" transform="scale(2)" fill="none" stroke="#30343b" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>'),profile());
+ assert.equal(status(scaled,'stroke'),'pass');
+ const distorted=checkSVGStandard(svg('<path d="M2 6L10 6" transform="scale(2 1)" fill="none" stroke="#30343b" stroke-width="1"/>'),profile());
+ assert.equal(status(distorted,'stroke'),'manual');assert.equal(status(distorted,'safe'),'manual');
+});
+test('safe area uses cubic extrema, viewBox origin and transforms, including stroke extents',()=>{
+ const cubic=checkSVGStandard(svg('<path d="M4 12C4 -1 20 -1 20 12" fill="none" stroke="#30343b" stroke-width=".1" stroke-linecap="round" stroke-linejoin="round"/>'),profile({stroke_widths:[.1]}));
+ assert.equal(status(cubic,'safe'),'pass','control points outside the safe area are not actual curve extrema');
+ const shifted=checkSVGStandard('<svg viewBox="10 10 24 24"><circle cx="22" cy="22" r="8" fill="#30343b"/></svg>',profile({stroke_enabled:false}));
+ assert.equal(status(shifted,'safe'),'pass');
+ const escaped=checkSVGStandard(svg('<circle cx="12" cy="12" r="8" fill="#30343b" transform="translate(3 0)"/>'),profile({stroke_enabled:false}));
+ assert.equal(status(escaped,'safe'),'warning');
+ const circleStroke=checkSVGStandard(svg('<circle cx="12" cy="12" r="10" fill="none" stroke="#30343b" stroke-width="2"/>'),profile());
+ assert.equal(status(circleStroke,'safe'),'warning');
+});
+test('gradients inspect used stops; clip paths, arcs and variable paints never silently pass',()=>{
+ const gradient=svg('<defs><linearGradient id="a"><stop stop-color="#30343b"/><stop offset="1" stop-color="white"/></linearGradient></defs><rect x="4" y="4" width="16" height="16" fill="url(#a)"/>');
+ assert.equal(status(checkSVGStandard(gradient,profile({stroke_enabled:false})),'colors'),'warning');
+ assert.equal(status(checkSVGStandard(gradient,profile({stroke_enabled:false,colors:['#30343b','#ffffff'],allow_gradients:true})),'colors'),'pass');
+ const unused=svg('<defs><linearGradient id="unused"><stop stop-color="red"/></linearGradient></defs><circle cx="12" cy="12" r="7" fill="#30343b"/>');
+ assert.equal(status(checkSVGStandard(unused,profile({stroke_enabled:false})),'colors'),'pass');
+ const stopDefaults=svg('<defs><linearGradient id="a" stop-color="red"><stop/><stop offset="1" stop-color="white"/></linearGradient></defs><rect x="4" y="4" width="16" height="16" fill="url(#a)"/>');
+ assert.equal(status(checkSVGStandard(stopDefaults,profile({stroke_enabled:false,colors:['#000000','#ffffff'],allow_gradients:true})),'colors'),'pass','stop-color is not inherited unless explicitly requested');
+ const clipped=svg('<defs><clipPath id="c"><rect width="24" height="24"/></clipPath></defs><g clip-path="url(#c)"><circle cx="12" cy="12" r="8" fill="#30343b"/></g>');
+ assert.equal(status(checkSVGStandard(clipped,profile({stroke_enabled:false})),'safe'),'manual');
+ assert.equal(status(checkSVGStandard(svg('<path d="M4 12A8 8 0 0 1 20 12" fill="none" stroke="#30343b"/>'),profile()),'safe'),'manual');
+ assert.equal(status(checkSVGStandard(svg('<circle cx="12" cy="12" r="7" fill="var(--brand)"/>'),profile({stroke_enabled:false})),'colors'),'manual');
+});

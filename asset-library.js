@@ -1,5 +1,6 @@
+import {createStandardsUI} from './standards-ui.js?v=20261031-standards-7';
 import {cleanSVG, normalizeMetadata, sourceKey, sha256, matchesAsset, localSave} from './catalog-core.js';
-import {CloudClient, validateConfig} from './cloud-client.js?v=20261031-library-4';
+import {CloudClient, validateConfig} from './cloud-client.js?v=20261031-standards-7';
 import {cloudConfig} from './cloud-config.js?v=20261031-cloud-1';
 
 const $ = id => document.getElementById(id);
@@ -44,7 +45,7 @@ async function run(action) {if(model.busy) return; model.busy=true; clearError()
 const root = el('section', undefined, 'catalog'); root.id='catalog-view'; root.hidden=true;
 root.innerHTML = `
  <div class="catalog-statusbar"><span class="catalog-mode" id="catalog-mode">本地试用 · 仅此浏览器</span><span id="catalog-account"></span></div>
- <div class="catalog-intro"><div><span class="eyebrow">ASSET LIBRARY</span><h2>让每一次设计，都能被再次使用。</h2><p>先查找已有资产，再决定是否创建。为图标保留来源、平台和每次修改。</p></div><div class="catalog-heading-actions"><button class="button primary" id="catalog-add">＋ 上传图标</button></div></div>
+ <div class="catalog-intro"><div><span class="eyebrow">ASSET LIBRARY</span><h2>让每一次设计，都能被再次使用。</h2><p>先查找已有资产，再决定是否创建。为图标保留来源、平台和每次修改。</p></div><div class="catalog-heading-actions"><button class="button" id="catalog-standards" type="button">图标规范</button><button class="button primary" id="catalog-add">＋ 上传图标</button></div></div>
  <div class="catalog-stats"><div><strong id="catalog-total">0</strong><span id="catalog-total-label">我的资产</span></div><div><strong id="catalog-platforms">0</strong><span>演示素材</span></div><div><strong id="catalog-sources">0</strong><span>已记录来源</span></div><div class="catalog-stat-note" id="catalog-storage-note">先查找已有资产，再登记新的设计。</div></div>
  <div id="catalog-message" role="alert" class="catalog-error" hidden></div>
  <div class="catalog-scope" role="group" aria-label="资产范围"><button type="button" data-scope="all" aria-pressed="true">全部</button><button type="button" data-scope="assets" aria-pressed="false" id="catalog-owned-tab">我的资产</button><button type="button" data-scope="demo" aria-pressed="false">演示素材</button></div>
@@ -58,13 +59,19 @@ const nav=button('▦  资产库', () => showCatalog(), 'nav catalog-nav'); nav.
 document.querySelector('.session-pill').lastChild.textContent='资产工作台 · 阶段 1';
 
 const dialogs=el('div'); dialogs.innerHTML=`
-<dialog class="catalog-dialog" id="catalog-upload" aria-labelledby="catalog-upload-title"><form id="catalog-upload-form"><div class="catalog-dialog-head"><div><span class="eyebrow">REGISTER ASSET</span><h2 id="catalog-upload-title">登记图标资产</h2></div><button type="button" class="icon-button" data-close="catalog-upload" aria-label="关闭入库窗口">×</button></div><div class="catalog-upload-layout"><label class="catalog-drop" id="catalog-drop"><span id="catalog-file-preview">＋ 选择或拖入 SVG</span><small id="catalog-file-name">支持线性、面型与多色图标，最大 1MB</small><input id="catalog-file" type="file" accept=".svg,image/svg+xml" hidden></label><div class="catalog-form-grid"><label class="catalog-full">图标名称 *<input name="name" maxlength="100" required placeholder="例如：收藏"></label><label>平台<select name="platform" id="catalog-form-platform"></select></label><label>视觉类型<select name="visual_type" id="catalog-form-type"></select></label><label>图标状态<input name="state_name" maxlength="30" value="默认" required></label><label>语义标签<input name="tags" placeholder="收藏, 书签, 稍后查看" maxlength="380"></label><label class="catalog-full">原始来源链接<input name="source_url" type="url" maxlength="2000" placeholder="可选：Figma 节点或其他 HTTPS 来源"></label><label class="catalog-full">备注<textarea name="note" maxlength="500" rows="2" placeholder="使用场景、适用限制等"></textarea></label></div></div><p class="catalog-hint" id="catalog-upload-hint"></p><div id="catalog-upload-error" class="catalog-error" role="alert" hidden></div><div class="catalog-dialog-actions"><button type="button" class="button" data-close="catalog-upload">取消</button><button id="catalog-save" type="submit" class="button primary">确认入库</button></div></form></dialog>
+<dialog class="catalog-dialog" id="catalog-upload" aria-labelledby="catalog-upload-title"><form id="catalog-upload-form"><div class="catalog-dialog-head"><div><span class="eyebrow">REGISTER ASSET</span><h2 id="catalog-upload-title">登记图标资产</h2></div><button type="button" class="icon-button" data-close="catalog-upload" aria-label="关闭入库窗口">×</button></div><div class="catalog-upload-layout"><label class="catalog-drop" id="catalog-drop"><span id="catalog-file-preview">＋ 选择或拖入 SVG</span><small id="catalog-file-name">支持线性、面型与多色图标，最大 1MB</small><input id="catalog-file" type="file" accept=".svg,image/svg+xml" hidden></label><div class="catalog-form-grid"><label class="catalog-full">图标名称 *<input name="name" maxlength="100" required placeholder="例如：收藏"></label><label>平台<select name="platform" id="catalog-form-platform"></select></label><label>视觉类型<select name="visual_type" id="catalog-form-type"></select></label><label>图标状态<input name="state_name" maxlength="30" value="默认" required></label><label>语义标签<input name="tags" placeholder="收藏, 书签, 稍后查看" maxlength="380"></label><label class="catalog-full">原始来源链接<input name="source_url" type="url" maxlength="2000" placeholder="可选：Figma 节点或其他 HTTPS 来源"></label><label class="catalog-full">备注<textarea name="note" maxlength="500" rows="2" placeholder="使用场景、适用限制等"></textarea></label></div></div><p class="catalog-hint" id="catalog-upload-hint"></p><div id="catalog-upload-check"></div><div id="catalog-upload-error" class="catalog-error" role="alert" hidden></div><div class="catalog-dialog-actions"><button type="button" class="button" data-close="catalog-upload">取消</button><button id="catalog-save" type="submit" class="button primary">确认入库</button></div></form></dialog>
 <dialog class="catalog-dialog catalog-detail" id="catalog-detail" aria-labelledby="catalog-detail-title"><div class="catalog-dialog-head"><div><span class="eyebrow">ASSET DETAILS</span><h2 id="catalog-detail-title"></h2></div><button type="button" class="icon-button" data-close="catalog-detail" aria-label="关闭资产详情">×</button></div><div id="catalog-detail-content"></div><div class="catalog-dialog-actions" id="catalog-detail-actions"></div></dialog>
 <dialog class="catalog-dialog catalog-auth" id="catalog-connection" aria-labelledby="catalog-auth-title"><div class="catalog-dialog-head"><h2 id="catalog-auth-title">账号与同步</h2><button type="button" class="icon-button" data-close="catalog-connection" aria-label="关闭账号与同步">×</button></div><p class="catalog-hint">登录后，在不同电脑访问同一份资产。原有本地资产不会自动上传。</p><form id="catalog-auth-form" class="catalog-form-grid"><label class="catalog-full">邮箱<input id="catalog-email" type="email" autocomplete="username" required></label><label class="catalog-full">密码<input id="catalog-password" type="password" autocomplete="current-password" minlength="8" required></label><button type="submit" id="catalog-login" class="button primary">登录</button><button type="button" class="button" id="catalog-register">注册账号</button></form><p id="catalog-auth-message" role="status" class="catalog-hint"></p><p class="catalog-hint">登录状态仅保留在当前标签页，关闭后需重新登录。</p><details class="catalog-advanced" id="catalog-advanced"><summary>高级连接设置</summary><form id="catalog-config-form" class="catalog-form-grid"><label class="catalog-full">Project URL<input id="catalog-url" type="url" placeholder="https://你的项目.supabase.co" required></label><label class="catalog-full">Publishable key<input id="catalog-key" type="text" placeholder="sb_publishable_..." autocomplete="off" required></label><button type="submit" class="button">保存连接配置</button><a href="https://github.com/xueyingz90/icon-lab/blob/main/docs/SETUP.md" target="_blank" rel="noreferrer" class="catalog-link">部署说明 ↗</a></form></details></dialog>
 <dialog class="catalog-dialog catalog-auth" id="catalog-member-dialog" aria-labelledby="catalog-member-title"><div class="catalog-dialog-head"><h2 id="catalog-member-title">添加工作空间成员</h2><button class="icon-button" type="button" data-close="catalog-member-dialog" aria-label="关闭添加成员">×</button></div><p class="catalog-hint">对方需先注册同一后端的账号。添加成员会授权其查看此空间的全部图标与历史版本，不会发送邮件。</p><form id="catalog-member-form" class="catalog-form-grid"><label class="catalog-full">成员邮箱<input name="email" type="email" required></label><label class="catalog-full">角色<select name="role"><option value="viewer">只读：查看与下载</option><option value="editor">编辑：查看、下载、创建和更新资产</option></select></label><button class="button primary" type="submit">确认添加</button></form><p class="catalog-hint" role="status" id="catalog-member-message"></p></dialog>`;
 document.body.append(dialogs);
 document.querySelectorAll('[data-close]').forEach(b => b.onclick=() => $(b.dataset.close).close());
 selectOptions('catalog-platform', platforms, true); selectOptions('catalog-type', types, true); selectOptions('catalog-form-platform', platforms); selectOptions('catalog-form-type', types);
+const standards=createStandardsUI({context:()=>({mode:model.mode,client:model.client,workspace:model.workspace,user:model.user,role:model.role}),onChange:()=>{updateUploadCheck();updateDetailCheck();}});
+function updateUploadCheck(){const container=$('catalog-upload-check');if(!model.upload){container.replaceChildren();return;}standards.renderCheck(container,model.upload.svg,$('catalog-form-platform').value);}
+function updateDetailCheck(){const container=$('catalog-detail-check');if(container&&model.selected)standards.renderCheck(container,model.selected.svg,model.selected.platform);}
+$('catalog-standards').onclick=()=>standards.open($('catalog-platform').value || '通用');
+$('catalog-form-platform').addEventListener('change',updateUploadCheck);
+
 
 function showCatalog() {
   window.iconflow.stop();
@@ -142,7 +149,7 @@ function render() {
   $('catalog-empty-help').textContent=model.scope==='demo'?'试试其他关键词或筛选条件。':model.assets.length ? '试试其他关键词或筛选条件，或者上传一份新资产。' : '此空间还没有资产。上传一个 SVG，建立第一份设计记录。';
 }
 function setUpload(info, filename='所选图标') {
-  model.upload=info; const preview=$('catalog-file-preview'); preview.replaceChildren(image(info.svg,filename)); $('catalog-file-name').textContent=`${filename} · ${info.width} × ${info.height}`;
+  model.upload=info; const preview=$('catalog-file-preview'); preview.replaceChildren(image(info.svg,filename)); $('catalog-file-name').textContent=`${filename} · ${info.width} × ${info.height}`;updateUploadCheck();
 }
 function openUpload(asset=null) {
   model.editing=asset; model.upload=null;
@@ -150,7 +157,7 @@ function openUpload(asset=null) {
   $('catalog-upload-error').hidden=true;
   $('catalog-upload-title').textContent=asset?'更新图标版本':'登记图标资产'; $('catalog-save').textContent=asset?'保存新版本':'确认入库';
   if(asset) {for(const key of ['name','platform','visual_type','state_name','source_url','note']) form.elements.namedItem(key).value=asset[key] || ''; form.elements.namedItem('tags').value=(asset.tags||[]).join(', '); setUpload(cleanSVG(asset.svg),asset.name);}
-  render(); openDialog('catalog-upload');
+  updateUploadCheck();render(); openDialog('catalog-upload');
 }
 async function readUpload(file) {
   if(!file) return;
@@ -184,7 +191,8 @@ function showDemoDetail(asset) {
   const properties=el('dl',undefined,'catalog-properties');
   for(const [label,value] of [['平台',asset.platform],['视觉类型',asset.visual_type],['画布',asset.width+' × '+asset.height],['来源','Icon Lab 内置演示素材']])properties.append(el('dt',label),el('dd',value));
   const overview=el('div',undefined,'catalog-detail-summary');overview.append(preview,properties);
-  content.append(overview,el('span','演示素材','catalog-badge demo'),el('p','内置基础图标，用于体验与复用。下载或用于动效不会自动上传；保存后才会进入你的资产。','catalog-hint'));
+  const checks=el('section');checks.id='catalog-detail-check';
+  content.append(overview,el('span','演示素材','catalog-badge demo'),el('p','内置基础图标，用于体验与复用。下载或用于动效不会自动上传；保存后才会进入你的资产。','catalog-hint'),checks);updateDetailCheck();
   const use=target=>{$('catalog-detail').close();window.iconflow.useCatalogSVG(asset.svg,asset.name,target);};
   const save=button(model.mode==='cloud'?'保存到空间资产':'保存到我的资产',()=>{
     $('catalog-detail').close();openUpload();setUpload(cleanSVG(asset.svg),asset.name);
@@ -213,7 +221,8 @@ async function showDetail(asset) {
   const historyDetails=el('details',undefined,'catalog-detail-history');
   const historySummary=el('summary','版本记录');
   const history=el('div',undefined,'catalog-history');historyDetails.append(historySummary,history);
-  content.append(overview,source,extra,historyDetails);
+  const checks=el('section');checks.id='catalog-detail-check';
+  content.append(overview,source,checks,extra,historyDetails);updateDetailCheck();
   const edit=button('更新版本',()=>{$('catalog-detail').close();openUpload(asset);},'button primary'); edit.disabled=model.mode==='cloud' && (model.role==='viewer'||!model.client?.session);
   const actions=$('catalog-detail-actions'); actions.replaceChildren(button('下载 SVG',()=>{try{download(cleanSVG(asset.svg).svg,asset.name.replace(/[^\p{L}\p{N}_-]/gu,'_')+'.svg','image/svg+xml');}catch(e){showError(e);}}),copyCodeButton(asset),button('用于状态动效',()=>{$('catalog-detail').close(); window.iconflow.useCatalogSVG(cleanSVG(asset.svg).svg,asset.name);}),edit);
   openDialog('catalog-detail');
@@ -237,7 +246,7 @@ async function connectAccount() {
   model.role=await client.role(model.workspace,model.user.id); model.mode='cloud';model.assets=[];
   const select=$('catalog-workspace'); select.replaceChildren(...spaces.map(s=>option(s.name,s.id)));select.value=model.workspace;
   $('catalog-members').hidden=spaces.find(s=>s.id===model.workspace)?.owner_id!==model.user?.id;
-  render(); await refresh(); $('catalog-connection').close();
+  await standards.load();render(); await refresh(); $('catalog-connection').close();
 }
 function connection() {
   const c=model.client?.config||cloudConfig;
@@ -261,13 +270,13 @@ $('catalog-file').onchange=()=>readUpload($('catalog-file').files[0]).catch(e=>{
 $('catalog-drop').ondragover=e=>{e.preventDefault();}; $('catalog-drop').ondrop=e=>{e.preventDefault();readUpload(e.dataTransfer.files[0]).catch(e=>{$('catalog-upload-error').textContent=e.message;$('catalog-upload-error').hidden=false;});};
 ['catalog-search','catalog-platform','catalog-type'].forEach(id=>$(id).addEventListener(id==='catalog-search'?'input':'change',render));
 $('catalog-clear').onclick=()=>{$('catalog-search').value='';$('catalog-platform').value='';$('catalog-type').value='';render();};
-$('catalog-refresh').onclick=()=>run(refresh);
+$('catalog-refresh').onclick=()=>run(async()=>{await standards.load();await refresh();});
 document.querySelectorAll('[data-scope]').forEach(b=>b.onclick=()=>setScope(b.dataset.scope));
-$('catalog-workspace').onchange=()=>run(async()=>{model.workspace=$('catalog-workspace').value;localStorage.setItem('iconlab.workspace:'+model.client.config.url,model.workspace);model.assets=[]; model.role=await model.client.role(model.workspace,model.user.id); $('catalog-members').hidden=model.workspaces.find(s=>s.id===model.workspace)?.owner_id!==model.user?.id; render();await refresh();});
+$('catalog-workspace').onchange=()=>run(async()=>{model.workspace=$('catalog-workspace').value;localStorage.setItem('iconlab.workspace:'+model.client.config.url,model.workspace);model.assets=[]; model.role=await model.client.role(model.workspace,model.user.id); $('catalog-members').hidden=model.workspaces.find(s=>s.id===model.workspace)?.owner_id!==model.user?.id; await standards.load();render();await refresh();});
 $('catalog-new-workspace').onclick=()=>{const name=prompt('工作空间名称');if(name?.trim())run(async()=>{await model.client.rpc('il_create_workspace',{p_name:name.trim()});await connectAccount();});};
 $('catalog-members').onclick=()=>{$('catalog-member-message').textContent='';openDialog('catalog-member-dialog');};
 $('catalog-member-form').onsubmit=async e=>{e.preventDefault(); const b=e.submitter;b.disabled=true;try{const d=Object.fromEntries(new FormData(e.target));await model.client.rpc('il_add_member',{p_workspace_id:model.workspace,p_email:d.email,p_role:d.role});$('catalog-member-message').textContent='成员权限已保存。对方登录后刷新即可选择此空间。';}catch(e){$('catalog-member-message').textContent=e.message;}finally{b.disabled=false;}};
-$('catalog-signout').onclick=()=>run(async()=>{try{await model.client.signOut();}finally{model.mode='local';model.user=null;model.workspace=null;model.assets=[];model.generation++;await refresh();}});
+$('catalog-signout').onclick=()=>run(async()=>{try{await model.client.signOut();}finally{model.mode='local';model.user=null;model.workspace=null;model.assets=[];model.generation++;await standards.load();await refresh();}});
 $('catalog-backup').onclick=()=>run(async()=>{download(JSON.stringify({format:'iconlab-catalog',version:1,exported_at:new Date().toISOString(),scope:model.mode,assets:model.assets},null,2),'icon-lab-assets.json');});
 $('catalog-restore').onchange=()=>run(async()=>{
   const file=$('catalog-restore').files[0];if(!file)return;
@@ -301,6 +310,7 @@ async function init() {
   if(config.url && config.key) {try{model.client=new CloudClient(config);}catch(e){showError(e);}}
   model.demos=await demoRecords();
   model.assets=await localRecords();
+  await standards.load();
   if(model.client?.session) {try{await connectAccount();}catch(e){model.mode='cloud';model.assets=[];render();showError(Error('云端暂时不可用：'+e.message+'。可退出登录使用本地试用。'));}}
   render(); if(localStorage.getItem('iconlab.lastView')!=='workbench')showCatalog();
   openAccountSettings();

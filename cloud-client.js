@@ -39,4 +39,5 @@ export class CloudClient {
   async role(workspaceId, userId) {const rows=await this.request('/rest/v1/il_members?select=role&workspace_id=eq.' + encodeURIComponent(workspaceId) + '&user_id=eq.' + encodeURIComponent(userId)); return rows[0]?.role || 'viewer';}
   assets(workspaceId) {return this.request('/rest/v1/il_assets?select=*&workspace_id=eq.' + encodeURIComponent(workspaceId) + '&order=updated_at.desc&limit=501');}
   revisions(assetId) {return this.request('/rest/v1/il_revisions?select=*&asset_id=eq.' + encodeURIComponent(assetId) + '&order=version.desc&limit=100');}
+  standards(workspaceId) {return this.request('/rest/v1/il_standards?select=*&workspace_id=eq.'+encodeURIComponent(workspaceId)+'&order=platform.asc');}
 }

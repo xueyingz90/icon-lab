@@ -45,6 +45,23 @@ test('actual page modules boot; local asset registration, search, version update
   await wait(()=>copied.length===1);
   assert.equal(copied[0],decodeURIComponent(d.querySelector('.catalog-detail-preview img').src.split(',')[1]));
   assert.match(d.getElementById('catalog-copy-result').textContent,/已复制/);
+  assert.match(d.querySelector('#catalog-detail-check summary').textContent,/未设置/);
+  d.querySelector('#catalog-detail-check button').click();
+  await wait(()=>d.getElementById('catalog-standards-dialog').open);
+  assert.equal(w.localStorage.getItem('iconlab.standards.local.v1'),null,'viewing an example does not apply it');
+  const standardForm=d.getElementById('standard-form');standardForm.elements.namedItem('name').value='个人规范';
+  standardForm.dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await wait(()=>d.getElementById('standard-message').textContent.includes('已保存并应用 v1'));
+  assert.equal(JSON.parse(w.localStorage.getItem('iconlab.standards.local.v1'))[0].version,1);
+  assert.match(d.getElementById('catalog-detail-check').textContent,/个人规范.*v1/);
+  // Simulate a newer save from another tab; a stale editor must not overwrite it.
+  const competing=JSON.parse(w.localStorage.getItem('iconlab.standards.local.v1'));competing[0].version=2;competing[0].definition={...competing[0].definition,width:32};
+  w.localStorage.setItem('iconlab.standards.local.v1',JSON.stringify(competing));
+  standardForm.elements.namedItem('name').value='过期编辑';standardForm.dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await wait(()=>d.getElementById('standard-message').textContent.includes('版本已变化'));
+  assert.equal(JSON.parse(w.localStorage.getItem('iconlab.standards.local.v1'))[0].definition.width,32);
+  d.getElementById('standard-reload').click();await wait(()=>standardForm.elements.namedItem('width').value==='32');
+  d.getElementById('standard-close').click();
   Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='保存到我的资产').click();
   assert.ok(d.getElementById('catalog-upload').open);const form=d.getElementById('catalog-upload-form');form.elements.namedItem('name').value='跨端收藏';form.elements.namedItem('tags').value='书签,收藏';
   form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
@@ -73,12 +90,15 @@ test('actual page modules boot; local asset registration, search, version update
   assert.equal(d.getElementById('workspace').hidden,false);assert.equal(d.getElementById('state-spec').hidden,false);assert.equal(d.getElementById('catalog-view').hidden,true);
   d.querySelector('[data-scope="assets"]').click();
   // Exercise the real connection form and account switching against an explicit mock transport.
-  const cloudAsset={...asset,id:'cloud-asset',name:'云端资产',revisions:undefined};
+  const cloudAsset={...asset,id:'cloud-asset',name:'云端资产',revisions:undefined};let cloudRole='owner',cloudStandards=[],standardsUnavailable=false;
   globalThis.fetch=async(url,opts)=>{
    if(String(url).includes('/auth/v1/token'))return new Response(JSON.stringify({access_token:'user-token',refresh_token:'refresh',expires_in:3600,user:{id:'owner',email:'owner@example.com'}}));
    if(String(url).includes('/auth/v1/logout'))return new Response('{}');
    if(String(url).includes('/il_workspaces'))return new Response(JSON.stringify([{id:'space',name:'共享空间',owner_id:'owner'}]));
-   if(String(url).includes('/il_members'))return new Response('[{"role":"owner"}]');
+   if(String(url).includes('/il_members'))return new Response(JSON.stringify([{role:cloudRole}]));
+   if(String(url).includes('/il_standards'))return standardsUnavailable?new Response('{"message":"offline"}',{status:503}):new Response(JSON.stringify(cloudStandards));
+   if(String(url).includes('/rpc/il_save_standard')){const body=JSON.parse(opts.body);assert.equal(opts.headers.Authorization,'Bearer user-token');const old=cloudStandards.find(s=>s.platform===body.p_platform);const saved={id:'standard',platform:body.p_platform,version:(old?.version||0)+1,definition:body.p_definition};cloudStandards=[saved];return new Response(JSON.stringify({standard:saved}));}
+   if(String(url).includes('/il_revisions'))return new Response('[]');
    if(String(url).includes('/il_assets'))return new Response(JSON.stringify([cloudAsset]));
    throw Error('Unexpected request '+url);
   };
@@ -97,6 +117,20 @@ test('actual page modules boot; local asset registration, search, version update
   await wait(()=>d.querySelectorAll('.catalog-card').length===1);
   assert.match(d.getElementById('catalog-grid').textContent,/云端资产/);
   assert.match(d.getElementById('catalog-grid').textContent,/已保存 · 云端/);
+  d.querySelector('.catalog-card').click();await wait(()=>d.getElementById('catalog-detail').open);
+  assert.match(d.querySelector('#catalog-detail-check summary').textContent,/未设置/,'cloud must not inherit local standards');
+  d.querySelector('#catalog-detail-check button').click();await wait(()=>d.getElementById('catalog-standards-dialog').open);
+  standardForm.elements.namedItem('name').value='空间规范';standardForm.dispatchEvent(new w.Event('submit',{cancelable:true}));
+  await wait(()=>d.getElementById('standard-message').textContent.includes('已保存并应用 v1'));
+  assert.match(d.getElementById('catalog-detail-check').textContent,/空间规范.*v1/);d.getElementById('standard-close').click();d.getElementById('catalog-detail').close();
+  standardsUnavailable=true;d.getElementById('catalog-refresh').click();await wait(()=>!d.body.classList.contains('catalog-busy'));
+  d.querySelector('.catalog-card').click();await wait(()=>d.getElementById('catalog-detail').open);
+  assert.match(d.getElementById('catalog-detail-check').textContent,/规范暂时无法读取/);
+  assert.doesNotMatch(d.getElementById('catalog-detail-check').textContent,/个人规范/);d.getElementById('catalog-detail').close();standardsUnavailable=false;
+  await wait(()=>!d.body.classList.contains('catalog-busy'));
+  cloudRole='viewer';d.getElementById('catalog-workspace').dispatchEvent(new w.Event('change'));await wait(()=>d.getElementById('catalog-add').disabled);
+  d.getElementById('catalog-standards').click();await wait(()=>d.getElementById('catalog-standards-dialog').open);
+  assert.equal(d.getElementById('standard-save').disabled,true);assert.equal(standardForm.elements.namedItem('width').disabled,true);d.getElementById('standard-close').click();
   d.querySelector('[data-scope="demo"]').click();assert.equal(d.querySelectorAll('.catalog-card').length,50);
   assert.equal(d.getElementById('catalog-total').textContent,'1');
   d.querySelector('[data-scope="all"]').click();assert.equal(d.querySelectorAll('.catalog-card').length,51);

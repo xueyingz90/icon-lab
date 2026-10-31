@@ -197,4 +197,4 @@ window.iconflow={sanitize,state,buildMotion,exportFrames,animatedSVG,lottieJSON,
  demoAssets:()=>Object.entries(icons).map(([key,item])=>({key,name:item.name,svg:`<svg xmlns="${NS}" viewBox="0 0 24 24" fill="none" stroke="#30343b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${item.d}"/></svg>`})),
  useCatalogSVG:async(markup,name,target='from')=>{state.statePair=[state.from,state.to];mode('state');await upload([new File([markup],name+'.svg',{type:'image/svg+xml'})],target);}
 };
-import('./asset-library.js?v=20261031-compact-6').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});
+import('./asset-library.js?v=20261031-standards-7').catch(e=>{console.error(e);toast('资产库加载失败，请刷新页面。原动效工作台仍可使用。');});
