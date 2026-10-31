@@ -21,7 +21,7 @@ const remembered=createRememberedSession({client,send,onChange:({remember})=>{
   controls();library.contextChanged();
 },onStatus:(text,retry)=>{$('session-status').textContent=text;$('session-retry').hidden=!retry;if(retry)showAccount(true);}});
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
-function showAccount(open){$('account-settings').hidden=!open;$('account-toggle').setAttribute('aria-expanded',String(open));}
+function showAccount(open){const panel=$('account-settings');panel.hidden=!open;$('account-toggle').setAttribute('aria-expanded',String(open));if(open&&panel.scrollIntoView){const top=panel.getBoundingClientRect().top;if(top<document.querySelector('.plugin-topbar').getBoundingClientRect().bottom||top>window.innerHeight)panel.scrollIntoView({block:'start'});}}
 function accountMessage(text,tone='info') {const notice=$('account-message');notice.textContent=text;notice.dataset.tone=tone;notice.hidden=!text;notice.setAttribute('role',tone==='error'?'alert':'status');if(tone==='error')showAccount(true);}
 function accountError(error){
   const text=error?.message||String(error);
