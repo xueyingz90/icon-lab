@@ -181,10 +181,10 @@ function showDemoDetail(asset) {
   model.selected=asset;$('catalog-detail-title').textContent=asset.name;
   const content=$('catalog-detail-content');content.replaceChildren();
   const preview=el('div',undefined,'catalog-detail-preview');preview.append(image(asset.svg,asset.name));
-  content.append(preview,el('span','演示素材','catalog-badge demo'),el('p','内置基础图标，用于体验与复用。下载或用于动效不会自动上传；保存后才会进入你的资产。','catalog-hint'));
   const properties=el('dl',undefined,'catalog-properties');
   for(const [label,value] of [['平台',asset.platform],['视觉类型',asset.visual_type],['画布',asset.width+' × '+asset.height],['来源','Icon Lab 内置演示素材']])properties.append(el('dt',label),el('dd',value));
-  content.append(properties);
+  const overview=el('div',undefined,'catalog-detail-summary');overview.append(preview,properties);
+  content.append(overview,el('span','演示素材','catalog-badge demo'),el('p','内置基础图标，用于体验与复用。下载或用于动效不会自动上传；保存后才会进入你的资产。','catalog-hint'));
   const use=target=>{$('catalog-detail').close();window.iconflow.useCatalogSVG(asset.svg,asset.name,target);};
   const save=button(model.mode==='cloud'?'保存到空间资产':'保存到我的资产',()=>{
     $('catalog-detail').close();openUpload();setUpload(cleanSVG(asset.svg),asset.name);
@@ -202,18 +202,25 @@ async function showDetail(asset) {
   const content=$('catalog-detail-content'); content.replaceChildren();
   const preview=el('div',undefined,'catalog-detail-preview');let svgCheck='通过基础结构与尺寸检查';try {preview.append(image(asset.svg,asset.name));} catch {svgCheck='未通过当前 SVG 检查';preview.textContent='此文件无法安全预览';}
   const properties=el('dl',undefined,'catalog-properties');
-  for(const [label,value] of [['平台',asset.platform],['视觉类型',asset.visual_type],['状态',asset.state_name],['版本','v'+asset.version],['画布',asset.width+' × '+asset.height],['语义标签',(asset.tags||[]).join('、')||'未填写'],['备注',asset.note||'未填写'],['保存状态',assetLabel(asset)],['更新时间',new Date(asset.updated_at||asset.created_at).toLocaleString('zh-CN')]]) properties.append(el('dt',label),el('dd',value));
-  properties.append(el('dt','SVG 检查'),el('dd',svgCheck));
+  for(const [label,value] of [['平台',asset.platform],['视觉类型',asset.visual_type],['状态',asset.state_name],['版本','v'+asset.version],['画布',asset.width+' × '+asset.height],['保存状态',assetLabel(asset)]]) properties.append(el('dt',label),el('dd',value));
+  const overview=el('div',undefined,'catalog-detail-summary');overview.append(preview,properties);
+  const extra=el('details',undefined,'catalog-detail-extra');extra.append(el('summary','更多信息'));
+  const extraProperties=el('dl',undefined,'catalog-properties catalog-extra-properties');
+  for(const [label,value] of [['语义标签',(asset.tags||[]).join('、')||'未填写'],['备注',asset.note||'未填写'],['更新时间',new Date(asset.updated_at||asset.created_at).toLocaleString('zh-CN')],['SVG 检查',svgCheck]])extraProperties.append(el('dt',label),el('dd',value));
+  extra.append(extraProperties);
   const source=el('div',undefined,'catalog-source'); source.append(el('strong','原始来源'));
   if(asset.source_url) {try {const link=el('a','打开原始设计 ↗','catalog-link'); link.href=normalizeMetadata(asset).source_url; link.target='_blank'; link.rel='noreferrer noopener';source.append(link);}catch{source.append(el('p','来源链接无效'));}} else source.append(el('p','未填写来源，可通过更新版本补充。'));
-  content.append(preview,properties,source,el('h3','版本记录'));
-  const history=el('div',undefined,'catalog-history');content.append(history);
+  const historyDetails=el('details',undefined,'catalog-detail-history');
+  const historySummary=el('summary','版本记录');
+  const history=el('div',undefined,'catalog-history');historyDetails.append(historySummary,history);
+  content.append(overview,source,extra,historyDetails);
   const edit=button('更新版本',()=>{$('catalog-detail').close();openUpload(asset);},'button primary'); edit.disabled=model.mode==='cloud' && (model.role==='viewer'||!model.client?.session);
   const actions=$('catalog-detail-actions'); actions.replaceChildren(button('下载 SVG',()=>{try{download(cleanSVG(asset.svg).svg,asset.name.replace(/[^\p{L}\p{N}_-]/gu,'_')+'.svg','image/svg+xml');}catch(e){showError(e);}}),copyCodeButton(asset),button('用于状态动效',()=>{$('catalog-detail').close(); window.iconflow.useCatalogSVG(cleanSVG(asset.svg).svg,asset.name);}),edit);
   openDialog('catalog-detail');
   try {
     const revisions=model.mode==='cloud' ? await model.client.revisions(asset.id) : asset.revisions||[];
     if(model.selected?.id!==asset.id) return;
+    historySummary.textContent='版本记录 · '+revisions.length+(revisions.length>=100?'（最近）':'');
     revisions.forEach(r=>{const row=el('div');row.append(el('span',`v${r.version} · ${new Date(r.created_at).toLocaleString('zh-CN')}`),button('下载此版本',()=>download(cleanSVG(r.svg).svg,`${asset.name}-v${r.version}.svg`,'image/svg+xml'),'text-button'));history.append(row);});
     if(!revisions.length) history.textContent='暂无版本记录。';
     if(revisions.length>=100)history.append(el('p','这里展示最近 100 个版本。','catalog-hint'));
