@@ -18,7 +18,7 @@ function backend(){let counter=0;return {mode:'online',calls:[],async fetch(url,
  assert.match(options.headers.Authorization,/^Bearer access-/);
  if(url.includes('/il_workspaces'))return new Response('[{"id":"space","name":"My library","owner_id":"u"}]');
  if(url.includes('/il_members'))return new Response('[{"role":"owner"}]');
- if(url.includes('/il_assets'))return new Response('[]');
+ if(url.includes('/il_assets'))return this.mode==='assets-expired'?new Response('{"message":"JWT expired"}',{status:401}):new Response('[]');
  throw Error('Unexpected request '+url);
  }};}
 async function openPlugin(storage,server){
@@ -102,7 +102,7 @@ test('login failures stay visible next to login on the library tab, with actiona
  }
 });
 
-test('login shows progress immediately and selection updates cannot hide it; success remains visible in library mode',async()=>{
+test('login shows progress immediately and selection updates cannot hide it; success collapses account settings in library mode',async()=>{
  const server=backend(),baseFetch=server.fetch.bind(server);let finish;
  server.fetch=async(url,options)=>url.includes('grant_type=password')?new Promise(resolve=>finish=resolve):baseFetch(url,options);
  const app=await openPlugin(new Map(),server);
@@ -110,6 +110,20 @@ test('login shows progress immediately and selection updates cannot hide it; suc
   const {d,w}=app;d.getElementById('library-tab').click();d.getElementById('email').value='test@example.com';d.getElementById('password').value='private-password';d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   assert.equal(d.getElementById('login').textContent,'正在登录…');assert.equal(d.getElementById('login').disabled,true);assert.equal(d.getElementById('login-form').getAttribute('aria-busy'),'true');assert.match(d.getElementById('account-message').textContent,/正在连接/);
   app.figma.ui.onmessage({type:'capture',bridgeId:app.bridgeId});await new Promise(r=>setTimeout(r,5));assert.equal(d.getElementById('account-message').hidden,false);assert.match(d.getElementById('account-message').textContent,/正在连接/);
-  finish(new Response(JSON.stringify(token())));await wait(()=>!d.getElementById('login').disabled);assert.match(d.getElementById('account-message').textContent,/已登录/);assert.equal(d.getElementById('account-message').dataset.tone,'success');assert.equal(d.getElementById('account-message').hidden,false);assert.equal(d.getElementById('library-panel').hidden,false);
+  finish(new Response(JSON.stringify(token())));await wait(()=>!d.getElementById('login').disabled);assert.match(d.getElementById('account-message').textContent,/已登录/);assert.equal(d.getElementById('account-message').dataset.tone,'success');assert.equal(d.getElementById('account-message').hidden,false);assert.equal(d.getElementById('library-panel').hidden,false);assert.equal(d.getElementById('account-settings').hidden,true);assert.equal(d.getElementById('workspace-picker').hidden,false);
+ }finally{await app.close();}
+});
+
+test('compact toolbar restores directly to library, exposes settings on demand and reopens login on expired sessions',async()=>{
+ const storage=new Map(),server=backend();let app=await openPlugin(storage,server);
+ try{
+  assert.equal(app.d.querySelector('h1'),null);assert.equal(app.d.getElementById('account-settings').hidden,false,'first use shows login');
+  await app.login(true);assert.equal(app.d.getElementById('account-settings').hidden,true);assert.equal(app.d.getElementById('account-toggle').getAttribute('aria-expanded'),'false');assert.equal(app.d.getElementById('library-panel').hidden,false);assert.equal(app.d.getElementById('upload-panel').hidden,true);
+  app.d.getElementById('account-toggle').click();assert.equal(app.d.getElementById('account-settings').hidden,false);assert.equal(app.d.getElementById('account-toggle').getAttribute('aria-expanded'),'true');assert.equal(app.d.getElementById('account-email').textContent,'test@example.com');assert.equal(app.d.getElementById('remember-session').checked,true);
+  app.d.getElementById('account-close').click();assert.equal(app.d.getElementById('account-settings').hidden,true);
+  const passwordCalls=server.calls.filter(c=>c.url.includes('grant_type=password')).length;await app.close();app=await openPlugin(storage,server);
+  await wait(()=>server.calls.at(-1).url.includes('/il_assets'));assert.equal(app.d.getElementById('account-settings').hidden,true);assert.equal(app.d.getElementById('library-tab').getAttribute('aria-pressed'),'true');assert.equal(app.d.getElementById('workspace-picker').hidden,false);assert.equal(app.d.getElementById('workspace').value,'space');assert.equal(server.calls.filter(c=>c.url.includes('grant_type=password')).length,passwordCalls,'restore never asks for the password');
+  await wait(()=>!app.d.getElementById('library-search').disabled);server.mode='assets-expired';
+  app.d.getElementById('library-search').click();await wait(()=>!app.d.getElementById('account-settings').hidden&&app.d.getElementById('account').hidden);assert.equal(app.d.getElementById('login-form').hidden,false);assert.equal(app.d.getElementById('workspace-picker').hidden,true);assert.equal(app.d.getElementById('account-message').dataset.tone,'info');assert.match(app.d.getElementById('account-message').textContent,/重新登录/);
  }finally{await app.close();}
 });

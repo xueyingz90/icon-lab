@@ -9,7 +9,7 @@ export function prepareLibrarySVG(asset) {
 }
 export function createPluginLibrary({client,context,send,onSessionExpired=()=>{}}) {
   const $=id=>document.getElementById(id);
-  let active=false,key='',generation=0,items=[],offset=0,hasMore=false,loading=false,debounce,insertCounter=0;
+  let active=true,key='',generation=0,items=[],offset=0,hasMore=false,loading=false,debounce,insertCounter=0;
   const pending=new Map(),pageSize=24;
   const currentKey=()=>client.session?.access_token&&context().workspace?client.config.url+':'+client.session.user?.id+':'+context().workspace:'';
   const message=text=>$('library-message').textContent=text;

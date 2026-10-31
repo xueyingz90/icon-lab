@@ -9,7 +9,7 @@ import {createRememberedSession} from './session.js';
 const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
 const $=id=>document.getElementById(id);
 const client=new CloudClient(cloudConfig,{storage:memoryStorage()});
-const model={selection:null,spaces:[],workspace:'',role:'viewer',busy:false,pending:null,accountAction:''};
+const model={selection:null,spaces:[],workspace:'',role:'viewer',busy:false,pending:null,accountAction:'',starting:true,wasLogged:null};
 const verifications=new Map();let requestCounter=0;
 let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
@@ -19,9 +19,10 @@ const remembered=createRememberedSession({client,send,onChange:({remember})=>{
   $('remember-session').checked=remember;
   if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}
   controls();library.contextChanged();
-},onStatus:(text,retry)=>{$('session-status').textContent=text;$('session-retry').hidden=!retry;}});
+},onStatus:(text,retry)=>{$('session-status').textContent=text;$('session-retry').hidden=!retry;if(retry)showAccount(true);}});
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
-function accountMessage(text,tone='info') {const notice=$('account-message');notice.textContent=text;notice.dataset.tone=tone;notice.hidden=!text;notice.setAttribute('role',tone==='error'?'alert':'status');}
+function showAccount(open){$('account-settings').hidden=!open;$('account-toggle').setAttribute('aria-expanded',String(open));}
+function accountMessage(text,tone='info') {const notice=$('account-message');notice.textContent=text;notice.dataset.tone=tone;notice.hidden=!text;notice.setAttribute('role',tone==='error'?'alert':'status');if(tone==='error')showAccount(true);}
 function accountError(error){
   const text=error?.message||String(error);
   if(/Invalid login credentials|invalid_credentials/i.test(text))return '邮箱或密码不正确，请检查后重试。请使用 Icon Lab 工作台账号。';
@@ -44,6 +45,13 @@ function watchRead() {
 function requestCapture(type='capture') {watchRead();send({type});}
 function controls() {
   const logged=!!client.session?.access_token;
+  if(!model.starting){if(!logged&&model.wasLogged!==false){showAccount(true);if(model.wasLogged===true)accountMessage('登录已失效或已退出，请重新登录。');}model.wasLogged=logged;}
+  $('workspace-picker').hidden=!logged||!model.workspace;
+  $('workspace-status').hidden=logged&&!!model.workspace;
+  $('workspace-status').textContent=model.starting?'正在恢复登录…':logged?'正在加载空间…':model.busy&&model.accountAction==='login'?'正在登录…':'未登录';
+  $('compact-role').hidden=!logged||!model.workspace||model.role!=='viewer';
+  $('account-toggle').title=logged?'账号设置：'+(client.session.user?.email||''):'登录与账号设置';
+  $('account-close').disabled=model.busy;
   $('login-form').hidden=logged;$('account').hidden=!logged;
   $('account-email').textContent=client.session?.user?.email || '';
   $('role').textContent=model.role==='viewer'?'只读 · 可查看，不能同步':model.role==='owner'?'空间所有者 · 可同步':'编辑成员 · 可同步';
@@ -153,10 +161,12 @@ window.addEventListener('message',event=>{
 });
 $('login-form').onsubmit=event=>{event.preventDefault();if(!$('login-form').reportValidity()){accountMessage('请检查邮箱格式，并填写至少 8 位密码。','error');return;}task(async()=>{
   await client.signIn($('email').value.trim(),$('password').value);
-  $('password').value='';accountMessage('登录成功，正在保存登录状态…');await remembered.commitLogin();accountMessage('登录成功，正在加载工作空间…');await loadSpaces();await remembered.flush();accountMessage(model.role==='viewer'?'已登录。当前空间为只读，可从资源库插入图标。':'已登录，可以上传图标或调用资源库。','success');
+  $('password').value='';accountMessage('登录成功，正在保存登录状态…');await remembered.commitLogin();accountMessage('登录成功，正在加载工作空间…');await loadSpaces();await remembered.flush();accountMessage(model.role==='viewer'?'已登录。当前空间为只读，可从资源库插入图标。':'已登录，可以上传图标或调用资源库。','success');showAccount(false);
 },{account:true,progress:'正在连接资产库，请稍候…',name:'login'});};
 $('remember-session').onchange=()=>{const remember=$('remember-session').checked;task(()=>remembered.setRemember(remember),{account:true});};
-async function restoreLogin(){if(await remembered.restore()){accountMessage('已恢复登录，正在加载工作空间…');await loadSpaces();accountMessage('已恢复登录，可以上传或从资源库插入图标。','success');}}
+async function restoreLogin(){if(await remembered.restore()){accountMessage('已恢复登录，正在加载工作空间…');await loadSpaces();accountMessage('已恢复登录，可以上传或从资源库插入图标。','success');showAccount(false);}}
+$('account-toggle').onclick=()=>showAccount($('account-settings').hidden);
+$('account-close').onclick=()=>showAccount(false);
 $('session-retry').onclick=()=>task(restoreLogin,{account:true});
 $('logout').onclick=()=>task(async()=>{await remembered.setRemember(false).catch(()=>{});try{await client.request('/auth/v1/logout?scope=local',{method:'POST'});}finally{client.setSession(null);$('password').value='';clearPending();await remembered.flush();}accountMessage('已退出，已清除本机保存的登录。');},{account:true,progress:'正在退出并清除本机登录…'});
 $('workspace').onchange=()=>task(chooseSpace,{account:true});
@@ -177,4 +187,4 @@ $('update').onclick=()=>{const pending=model.pending;
   queueSync(pending.asset);
 };
 $('cancel-update').onclick=()=>{clearPending();message('已取消更新。可修改图标状态后重新同步。');controls();};
-controls();requestCapture('ready');task(restoreLogin,{account:true});
+controls();requestCapture('ready');task(restoreLogin,{account:true}).finally(()=>{model.starting=false;controls();});

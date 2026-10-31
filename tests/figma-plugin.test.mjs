@@ -98,6 +98,7 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
   if(url.includes('/auth/v1/logout'))return new Response('{}');
   if(url.includes('/il_workspaces'))return new Response('[{"id":"space","name":"我的图标库","owner_id":"u"}]');
   if(url.includes('/il_members'))return new Response(JSON.stringify([{role}]));
+  if(url.includes('/il_assets'))return new Response('[]');
   if(url.includes('/rpc/il_save_asset')){
    if(reply==='conflict')return new Response('{"message":"版本已变化，请刷新后重试。"}',{status:409});
    if(reply==='updated')version++;
