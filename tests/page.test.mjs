@@ -20,6 +20,8 @@ test('actual page modules boot; local asset registration, search, version update
   const d=w.document;
   await wait(()=>d.querySelectorAll('.catalog-card').length>0);
   assert.equal(d.querySelectorAll('.catalog-card').length,6);assert.equal(d.getElementById('catalog-view').hidden,false);
+  assert.equal(d.getElementById('catalog-connect'),null);
+  assert.equal(d.getElementById('catalog-connection').open,false);
   // Choose a real bundled icon via the existing library and register it into the new catalog.
   d.querySelector('[data-mode="library"]').click();assert.equal(d.getElementById('catalog-view').hidden,true);assert.equal(d.getElementById('library-view').hidden,false);
   Array.from(d.querySelectorAll('.library-actions button')).find(b=>b.textContent==='登记到资产库').click();
@@ -42,7 +44,12 @@ test('actual page modules boot; local asset registration, search, version update
    if(String(url).includes('/il_assets'))return new Response(JSON.stringify([cloudAsset]));
    throw Error('Unexpected request '+url);
   };
-  d.getElementById('catalog-nav').click();d.getElementById('catalog-connect').click();
+  w.location.hash='#account-settings';w.dispatchEvent(new w.Event('hashchange'));
+  assert.equal(d.getElementById('catalog-view').hidden,false);
+  assert.equal(d.getElementById('catalog-connection').open,true);
+  assert.equal(d.getElementById('catalog-advanced').open,false);
+  assert.equal(d.getElementById('catalog-config-form').parentElement.id,'catalog-advanced');
+  d.getElementById('catalog-advanced').open=true;
   d.getElementById('catalog-url').value='https://test.supabase.co';d.getElementById('catalog-key').value='sb_publishable_test';
   d.getElementById('catalog-config-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   d.getElementById('catalog-email').value='owner@example.com';d.getElementById('catalog-password').value='test-password';

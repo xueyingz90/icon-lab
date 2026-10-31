@@ -8,7 +8,7 @@
 
 你现在只需：
 1. 打开 https://supabase.com/dashboard/project/blolhaacvmciirmiovdo/auth/url-configuration ，把 Site URL 设置为 https://xueyingz90.github.io/icon-lab/ 并保存。如需填写 Redirect URLs，也加入同一完整地址。
-2. 工作台点击“连接云端”，无需再填 Project URL 和公钥，使用邮箱和密码注册。当前 Email 登录已启用、注册已开放、邮箱确认已开启，需要你本人打开确认邮件；注册后的账号与 Supabase 管理后台账号相互独立。
+2. 使用个人保存的账号设置入口（首页已隐藏入口），无需再填 Project URL 和公钥，使用邮箱和密码注册。当前 Email 登录已启用、注册已开放、邮箱确认已开启，需要你本人打开确认邮件；注册后的账号与 Supabase 管理后台账号相互独立。
 3. 确认邮箱后返回工作台登录。再在第二台电脑用同一工作台账号登录，验收同步。
 
 以下是从零部署或重新建立项目时使用的备用说明，不需要对已部署项目重复执行建表脚本。
@@ -23,10 +23,12 @@
 2. 打开该项目 SQL Editor，粘贴并完整执行 `backend/001_asset_library.sql`。脚本用于新项目，建表、访问规则和版本函数在同一事务中创建；不是反复执行的增量更新脚本。
 3. 在 Authentication 的 URL 配置中，将 Site URL 设置为 `https://xueyingz90.github.io/icon-lab/`，并允许该地址用于确认回跳。配置 Email 登录。邮件注册验证需要项目可用的邮件发送配置；试用时也可由项目管理员在 Auth Users 中创建已确认的测试用户。
 4. 在项目的 Connect / API Keys 位置找到 Project URL 与 Publishable key（通常以 `sb_publishable_` 开头）。旧的 anon key 也可使用。**不要使用 Secret / service_role key。**
-5. 打开工作台 → 资产库 → 连接云端，填写上述两个公开配置，保存，然后注册或登录工作台账号。工作台账号与 Supabase 管理后台账号是两套身份。
+5. 使用个人保存的账号设置入口，展开“高级连接设置”，填写上述两个公开配置，保存，然后注册或登录工作台账号。工作台账号与 Supabase 管理后台账号是两套身份。
 6. 换电脑后，用相同后端配置和相同工作台账号登录。资产保存在数据库，不依赖原电脑在线。会话存储于标签页会话，关闭标签页后需要重新登录。
 
 Project URL 和 Publishable key 可放进根目录 `cloud-config.js` 后发布，使每台电脑免于重复填写后端配置。它们是公开配置，用户权限由数据库和登录令牌执行。不要把管理员密钥提交到 GitHub。
+
+用户已于 2026-10-31 确认真实账号登录及双机同步验收完成。以下步骤保留为后续部署的验收方法。
 
 ## 两台电脑验收
 
