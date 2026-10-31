@@ -16,7 +16,7 @@ function watchRead() {
   clearTimeout(readTimer);
   readTimer=setTimeout(()=>{
     if(model.selection)return;
-    $('selection-error').textContent='未收到图标读取结果。请点击“重新读取”；若仍无响应，请关闭插件并重新运行 v0.3.1。';
+    $('selection-error').textContent='未收到图标读取结果。请点击“重新读取”；若仍无响应，请关闭插件并重新运行当前修复版本。';
     $('preview').textContent='暂未读取到图标';controls();
   },10000);
 }
@@ -93,7 +93,7 @@ async function submit(selection,fields,previous=null) {
     $('duplicate-description').textContent=`${result.asset.name} · v${result.asset.version}\n同一来源或相同内容已登记，尚未覆盖。\n原状态：${result.asset.state_name || '未填写'} · ${result.asset.platform || '未填写'} · ${result.asset.visual_type || '未填写'}\n原来源：${result.asset.source_url || '未记录'}`;
     $('duplicate').hidden=false;message('请核对已有资产，再决定是否更新。');return;
   }
-  const status=result.result==='unchanged'?'内容与记录一致，未新增版本':result.result==='updated'?'已更新，旧版本已保留':'已登记 · 未审核';
+  const status=result.result==='unchanged'?'内容与记录一致，未新增版本':result.result==='updated'?'已更新，旧版本已保留':'已保存到云端资产库';
   message(`${result.asset.name} · v${result.asset.version}\n${status}。请在工作台刷新查看。`+(sameSelection?'':'\n已同步刚才确认的预览；当前选区尚未同步。'),'success');
 }
 function queueSync(previous=null) {

@@ -16,24 +16,49 @@ test('actual page modules boot; local asset registration, search, version update
  globalThis.fetch=async url=>new Response(await fs.readFile(new URL('../'+url,import.meta.url)));
  const errors=[];const originalError=console.error;console.error=(...args)=>errors.push(args.join(' '));
  try {
+  // Existing untouched demo seeds are archived; user-edited demo assets remain.
+  const {basicIcons}=await import('../library.js');
+  const {cleanSVG,sha256,normalizeMetadata,localSave}=await import('../catalog-core.js');
+  const seedInfo=key=>cleanSVG(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#30343b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${basicIcons[key].d}"/></svg>`);
+  let legacy=[];
+  for(const key of ['plus','minus']){const info=seedInfo(key);legacy=localSave(legacy,normalizeMetadata({name:basicIcons[key].name,tags:['演示',key],platform:'通用',note:'内置演示素材；用于体验本地资产库。'}),info,await sha256(info.svg)).records;}
+  const plus=legacy.find(a=>a.name==='添加');
+  legacy=localSave(legacy,normalizeMetadata({...plus,name:'自定义添加',note:'保留用户修改'}),seedInfo('plus'),plus.content_hash,plus.id,1).records;
+  w.localStorage.setItem('iconlab.catalog.local.v1',JSON.stringify(legacy));
   await import('../app.js');
   const d=w.document;
   await wait(()=>d.querySelectorAll('.catalog-card').length>0);
-  assert.equal(d.querySelectorAll('.catalog-card').length,6);assert.equal(d.getElementById('catalog-view').hidden,false);
+  assert.equal(d.querySelectorAll('.catalog-card').length,51);assert.equal(d.getElementById('catalog-view').hidden,false);
+  assert.equal(d.querySelector('[data-mode="library"]'),null);assert.equal(d.getElementById('library-view'),null);
+  assert.equal(d.getElementById('catalog-total').textContent,'1');
+  assert.equal(JSON.parse(w.localStorage.getItem('iconlab.catalog.archived-seeds.v1')).length,1);
+  assert.equal(JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1'))[0].name,'自定义添加');
   assert.equal(d.getElementById('catalog-connect'),null);
   assert.equal(d.getElementById('catalog-connection').open,false);
-  // Choose a real bundled icon via the existing library and register it into the new catalog.
-  d.querySelector('[data-mode="library"]').click();assert.equal(d.getElementById('catalog-view').hidden,true);assert.equal(d.getElementById('library-view').hidden,false);
-  Array.from(d.querySelectorAll('.library-actions button')).find(b=>b.textContent==='登记到资产库').click();
+  // All 50 bundled icons are demos in the same catalog; opening one does not save it.
+  d.querySelector('[data-scope="demo"]').click();d.querySelector('.catalog-card').click();
+  assert.ok(d.getElementById('catalog-detail').open);assert.match(d.getElementById('catalog-detail-content').textContent,/演示素材/);
+  assert.equal(d.getElementById('catalog-total').textContent,'1');
+  Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='保存到我的资产').click();
   assert.ok(d.getElementById('catalog-upload').open);const form=d.getElementById('catalog-upload-form');form.elements.namedItem('name').value='跨端收藏';form.elements.namedItem('tags').value='书签,收藏';
   form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
   await wait(()=>d.getElementById('catalog-detail').open);
   assert.equal(d.getElementById('catalog-detail-title').textContent,'跨端收藏');
+  assert.match(d.getElementById('catalog-detail-content').textContent,/已保存 · 本地/);
+  assert.doesNotMatch(d.getElementById('catalog-detail-content').textContent,/未审核/);
+  d.querySelector('[data-scope="assets"]').click();
   const search=d.getElementById('catalog-search');search.value='书签';search.dispatchEvent(new w.Event('input'));assert.equal(d.querySelectorAll('.catalog-card').length,1);
   const edit=Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='更新版本');edit.click();form.elements.namedItem('note').value='修改后仍保留 v1';form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
   await wait(()=>d.querySelectorAll('.catalog-history>div').length===2);
-  const records=JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1'));const asset=records.find(a=>a.name==='跨端收藏');assert.equal(asset.version,2);assert.equal(asset.revisions[1].note,'');
-  d.getElementById('catalog-detail').close();d.querySelector('[data-mode="state"]').click();assert.equal(d.getElementById('workspace').hidden,false);assert.equal(d.getElementById('state-spec').hidden,false);assert.equal(d.getElementById('catalog-view').hidden,true);
+  const records=JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1'));const asset=records.find(a=>a.name==='跨端收藏');assert.equal(asset.version,2);assert.equal(asset.revisions[1].note,'来自 Icon Lab 内置演示素材。');
+  d.getElementById('catalog-detail').close();d.querySelector('[data-scope="demo"]').click();search.value='';search.dispatchEvent(new w.Event('input'));
+  d.querySelector('.catalog-card').click();await wait(()=>d.getElementById('catalog-detail').open);
+  const originalFrom=w.iconflow.state.from;
+  Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='用作目标状态').click();
+  await wait(()=>w.iconflow.state.to.startsWith('custom-'));
+  assert.equal(w.iconflow.state.from,originalFrom);
+  assert.equal(d.getElementById('workspace').hidden,false);assert.equal(d.getElementById('state-spec').hidden,false);assert.equal(d.getElementById('catalog-view').hidden,true);
+  d.querySelector('[data-scope="assets"]').click();
   // Exercise the real connection form and account switching against an explicit mock transport.
   const cloudAsset={...asset,id:'cloud-asset',name:'云端资产',revisions:undefined};
   globalThis.fetch=async(url,opts)=>{
@@ -58,9 +83,14 @@ test('actual page modules boot; local asset registration, search, version update
   search.value='';search.dispatchEvent(new w.Event('input'));
   await wait(()=>d.querySelectorAll('.catalog-card').length===1);
   assert.match(d.getElementById('catalog-grid').textContent,/云端资产/);
+  assert.match(d.getElementById('catalog-grid').textContent,/已保存 · 云端/);
+  d.querySelector('[data-scope="demo"]').click();assert.equal(d.querySelectorAll('.catalog-card').length,50);
+  assert.equal(d.getElementById('catalog-total').textContent,'1');
+  d.querySelector('[data-scope="all"]').click();assert.equal(d.querySelectorAll('.catalog-card').length,51);
+  d.querySelector('[data-scope="assets"]').click();
   d.getElementById('catalog-signout').click();
   await wait(()=>d.getElementById('catalog-mode').textContent.includes('本地试用'));
-  assert.equal(d.querySelectorAll('.catalog-card').length,7);
+  assert.equal(d.querySelectorAll('.catalog-card').length,2);
   assert.equal(JSON.parse(w.localStorage.getItem('iconlab.catalog.local.v1')).find(a=>a.name==='跨端收藏').version,2);
   assert.ok(w.iconflow.state);assert.deepEqual(errors,[]);
  } catch(e) {originalError('PAGE ERRORS', errors, w.document.getElementById('catalog-message')?.textContent, w.document.getElementById('toast')?.textContent);throw e;} finally {console.error=originalError;await w.happyDOM.abort();}

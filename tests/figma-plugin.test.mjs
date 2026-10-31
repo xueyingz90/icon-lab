@@ -123,7 +123,8 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
   const saves=()=>calls.filter(c=>c.url.includes('/rpc/il_save_asset'));
   submit();await wait(()=>saves().length===1 && !d.getElementById('sync').disabled);
   assert.equal(saves()[0].body.p_meta.source_key,'figma:file:12:34');assert.equal(saves()[0].body.p_meta.name,'收藏');
-  assert.match(d.getElementById('message').textContent,/已登记/);
+  assert.match(d.getElementById('message').textContent,/已保存/);
+  assert.doesNotMatch(d.getElementById('message').textContent,/未审核/);
   reply='duplicate';submit();await wait(()=>!d.getElementById('duplicate').hidden);
   assert.equal(saves().at(-1).body.p_asset_id,null);assert.equal(saves().length,2);
   reply='updated';d.getElementById('update').click();await wait(()=>saves().length===3 && !d.getElementById('sync').disabled);
