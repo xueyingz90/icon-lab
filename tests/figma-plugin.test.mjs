@@ -33,22 +33,46 @@ test('Figma source is canonical, uses the selected node and rejects missing or m
 });
 
 test('Figma bridge exports one selected icon; stale exports and changed selections cannot be confirmed',async()=>{
- const messages=[];const callbacks={};const opened=[];
+ const messages=[];const callbacks={};const opened=[];let bridgeId;
  const node={id:'12:34',name:'收藏',type:'FRAME',width:24,height:24,visible:true,exportAsync:async opts=>{assert.equal(opts.format,'SVG_STRING');return svg;}};
- const figma={currentPage:{selection:[]},ui:{postMessage:m=>messages.push(m)},showUI(){},on:(event,handler)=>callbacks[event]=handler,openExternal:url=>opened.push(url)};
- vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:'UI'});
- figma.ui.onmessage({type:'ready'});await wait(()=>messages.some(m=>m.type==='selection-error'));
+ const figma={currentPage:{selection:[]},ui:{postMessage:m=>messages.push(m)},showUI(html){bridgeId=html.match(/const BRIDGE_ID = "([^"]+)"/)[1];},on:(event,handler)=>callbacks[event]=handler,openExternal:url=>opened.push(url)};
+ vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:await fs.readFile(new URL('../figma-plugin/ui.html',import.meta.url),'utf8')});
+ assert.notEqual(bridgeId,'__ICONLAB_BRIDGE_ID__');
+ figma.ui.onmessage({type:'ready',bridgeId});await wait(()=>messages.some(m=>m.type==='selection-error'));
  assert.match(messages.at(-1).message,/只选中一个/);
  figma.currentPage.selection=[node];callbacks.selectionchange();await wait(()=>messages.at(-1).type==='selection');
  const token=messages.at(-1).selection.token;assert.equal(messages.at(-1).selection.fileKey,'');
- figma.ui.onmessage({type:'verify',requestId:'ok',nodeId:node.id,token});await wait(()=>messages.at(-1).type==='verified');
- figma.ui.onmessage({type:'verify',requestId:'wrong',nodeId:'wrong',token});await wait(()=>messages.at(-1).type==='verify-error');
+ figma.ui.onmessage({type:'verify',requestId:'ok',nodeId:node.id,token,bridgeId});await wait(()=>messages.at(-1).type==='verified');
+ figma.ui.onmessage({type:'verify',requestId:'wrong',nodeId:'wrong',token,bridgeId});await wait(()=>messages.at(-1).type==='verify-error');
  let finish;const slow={...node,id:'1:1',exportAsync:()=>new Promise(resolve=>finish=resolve)};
  figma.currentPage.selection=[slow];callbacks.selectionchange();
  figma.currentPage.selection=[{...node,id:'2:2'}];callbacks.selectionchange();await wait(()=>messages.at(-1).type==='selection');
  finish(svg);await new Promise(r=>setTimeout(r,5));assert.equal(messages.at(-1).selection.nodeId,'2:2');
- figma.ui.onmessage({type:'open-workbench'});assert.equal(opened[0],'https://xueyingz90.github.io/icon-lab/');
+ figma.ui.onmessage({type:'open-workbench',bridgeId:'wrong-bridge'});assert.equal(opened.length,0);
+ figma.ui.onmessage({type:'open-workbench',bridgeId});assert.equal(opened[0],'https://xueyingz90.github.io/icon-lab/');
  figma.currentPage.selection=[{...node,type:'GROUP'}];callbacks.selectionchange();await wait(()=>messages.at(-1).type==='selection-error');
+});
+
+test('real plugin main and bundled UI exchange relayed null-source messages without uploading',async()=>{
+ const w=new Window({settings:{disableJavaScriptEvaluation:true,disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});
+ const callbacks={};let html;
+ const deliver=message=>w.dispatchEvent(new w.MessageEvent('message',{data:{pluginMessage:message}}));
+ const node={id:'12:34',name:'AI星星',type:'FRAME',width:86,height:86,visible:true,exportAsync:async()=>svg};
+ const figma={currentPage:{selection:[node]},ui:{postMessage:msg=>queueMicrotask(()=>deliver(msg))},showUI:value=>html=value,on:(name,fn)=>callbacks[name]=fn,openExternal(){}};
+ vm.runInNewContext(await fs.readFile(new URL('../figma-plugin/code.js',import.meta.url),'utf8'),{figma,__html__:await fs.readFile(new URL('../figma-plugin/ui.html',import.meta.url),'utf8')});
+ w.document.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
+ const bridge={postMessage:({pluginMessage})=>figma.ui.onmessage(pluginMessage)};
+ const context=vm.createContext({window:w,document:w.document,parent:bridge,DOMParser:w.DOMParser,XMLSerializer:w.XMLSerializer,FormData:w.FormData,TextEncoder,URL,Map,Response,AbortSignal,fetch:()=>{throw Error('Reading selection must not upload');},setTimeout,clearTimeout,console});
+ try {
+  vm.runInContext(html.match(/<script>([\s\S]*)<\/script>/)[1],context);
+  await wait(()=>w.document.getElementById('preview').querySelector('img'));
+  assert.equal(w.document.getElementById('selection-name').textContent,'AI星星');
+  assert.match(w.document.getElementById('sync-hint').textContent,/登录/);
+  w.document.getElementById('preview-background').click();assert.equal(w.document.getElementById('preview').dataset.background,'dark');
+  figma.currentPage.selection=[];callbacks.selectionchange();
+  await wait(()=>w.document.getElementById('selection-error').textContent.includes('只选中一个'));
+  assert.equal(w.document.getElementById('sync').disabled,true);
+ }finally{await w.happyDOM.abort();}
 });
 
 test('bundled Figma UI logs in, saves source metadata, confirms duplicate updates, blocks stale and read-only writes',async()=>{
@@ -59,7 +83,7 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
  const manifest=JSON.parse(await fs.readFile(new URL('../figma-plugin/manifest.json',import.meta.url),'utf8'));
  assert.deepEqual(manifest.networkAccess.allowedDomains,['https://blolhaacvmciirmiovdo.supabase.co']);assert.equal(manifest.documentAccess,'dynamic-page');
  const d=w.document,calls=[];let role='owner',reply='created',current={...selection},geometry=svg,version=1,verifyHook;
- const deliver=message=>{const event=new w.Event('message');Object.defineProperties(event,{data:{value:{pluginMessage:message}},source:{value:bridge}});w.dispatchEvent(event);};
+ const deliver=(message,source=null)=>{const event=new w.MessageEvent('message',{data:{pluginMessage:{bridgeId:'__ICONLAB_BRIDGE_ID__',...message}},source});w.dispatchEvent(event);};
  const bridge={postMessage:({pluginMessage:m})=>{
   if(m.type==='verify')queueMicrotask(()=>{
    if(verifyHook){verifyHook(m);return;}
@@ -83,7 +107,14 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
  const context=vm.createContext({window:w,document:d,parent:bridge,DOMParser:w.DOMParser,XMLSerializer:w.XMLSerializer,FormData:w.FormData,TextEncoder,URL,Map,Response,AbortSignal,fetch:fetcher,setTimeout,clearTimeout,console,crypto:globalThis.crypto});
  try {
   vm.runInContext(script,context);assert.equal(d.getElementById('sync').disabled,true);
-  deliver({type:'selection',selection:current});d.getElementById('source').value='https://www.figma.com/design/file/name';
+  assert.match(d.getElementById('sync-hint').textContent,/登录/);
+  deliver({type:'selection',selection:current});
+  assert.ok(d.getElementById('preview').querySelector('img'),'Figma messages with a null source must render a preview');
+  deliver({type:'selection-error',bridgeId:'wrong-bridge',message:'unrelated frame'},{postMessage(){}});
+  assert.ok(d.getElementById('preview').querySelector('img'),'unrelated bridge messages must not change selection');
+  deliver({type:'selection',selection:current},w);
+  assert.ok(d.getElementById('preview').querySelector('img'),'self-dispatched Figma relay messages must also render a preview');
+  d.getElementById('source').value='https://www.figma.com/design/file/name';
   d.getElementById('email').value='test@example.com';d.getElementById('password').value='test-password';
   d.getElementById('login-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
   await wait(()=>!d.getElementById('account').hidden && !d.getElementById('sync').disabled);

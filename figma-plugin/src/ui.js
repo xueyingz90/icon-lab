@@ -3,13 +3,24 @@ import {cloudConfig} from '../../cloud-config.js';
 import {cleanSVG} from '../../catalog-core.js';
 import {prepareSelection, syncSelection, memoryStorage, syncError} from './sync-core.js';
 
+const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
 const $=id=>document.getElementById(id);
 const client=new CloudClient(cloudConfig,{storage:memoryStorage()});
 const model={selection:null,spaces:[],workspace:'',role:'viewer',busy:false,pending:null};
 const verifications=new Map();let requestCounter=0;
-const send=message=>parent.postMessage({pluginMessage:message},'*');
+let readTimer;
+const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
 function message(text,tone='info') {$('message').textContent=text;$('message').dataset.tone=tone;$('message').hidden=!text;}
 function clearPending() {model.pending=null;$('duplicate').hidden=true;}
+function watchRead() {
+  clearTimeout(readTimer);
+  readTimer=setTimeout(()=>{
+    if(model.selection)return;
+    $('selection-error').textContent='未收到图标读取结果。请点击“重新读取”；若仍无响应，请关闭插件并重新运行 v0.3.1。';
+    $('preview').textContent='暂未读取到图标';controls();
+  },10000);
+}
+function requestCapture(type='capture') {watchRead();send({type});}
 function controls() {
   const logged=!!client.session?.access_token;
   $('login-form').hidden=logged;$('account').hidden=!logged;
@@ -18,7 +29,9 @@ function controls() {
   $('login').disabled=model.busy;
   ['logout','workspace','reload-spaces','read'].forEach(id=>$(id).disabled=model.busy);
   document.querySelectorAll('#asset-form input,#asset-form select,#asset-form textarea').forEach(n=>n.disabled=model.busy);
-  $('sync').disabled=model.busy || !logged || !model.selection || !model.workspace || model.role==='viewer' || !!model.pending;
+  const reason=model.busy?'正在处理，请稍候。':!logged?'请先在上方登录资产库。':!model.selection?'请选中图标并点击“重新读取”，出现预览后才能同步。':!model.workspace?'请选择目标工作空间。':model.role==='viewer'?'当前空间为只读，需要空间所有者授予编辑权限。':!$('name').value.trim()?'请填写图标名称。':!$('asset-form').elements.namedItem('state_name').value.trim()?'请填写图标状态。':!$('source').value.trim()?'请填写当前 Figma 文件链接。':model.pending?'已发现已有资产，请在上方确认更新或取消。':'';
+  $('sync').disabled=!!reason;
+  $('sync-hint').textContent=reason || '预览已就绪，将同步到当前选中的工作空间。';
   $('update').disabled=model.busy || !logged || model.role==='viewer' || !model.pending;
   $('cancel-update').disabled=model.busy;
 }
@@ -91,13 +104,17 @@ function queueSync(previous=null) {
   task(()=>submit(selection,fields,previous));
 }
 window.addEventListener('message',event=>{
-  if(event.source!==parent)return;
-  const data=event.data?.pluginMessage;if(!data)return;
+  // Figma relays do not guarantee event.source === parent. Match the current
+  // plugin runtime's bridge ID instead of depending on Window identity.
+  const data=event.data?.pluginMessage;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error'].includes(data.type))return;
   if(data.type==='selection-loading'){
+    watchRead();
     model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();
   }
-  if(data.type==='selection')acceptSelection(data.selection);
+  if(data.type==='selection'){clearTimeout(readTimer);acceptSelection(data.selection);}
   if(data.type==='selection-error'){
+    clearTimeout(readTimer);
     model.selection=null;clearPending();$('preview').textContent='请选中一个图标';$('selection-name').textContent='尚未读取图标';$('selection-error').textContent=data.message;controls();
   }
   if(data.type==='verified' || data.type==='verify-error'){
@@ -114,7 +131,13 @@ $('login-form').onsubmit=event=>{event.preventDefault();task(async()=>{
 $('logout').onclick=()=>task(async()=>{try{await client.request('/auth/v1/logout?scope=local',{method:'POST'});}finally{client.setSession(null);$('password').value='';clearPending();}message('已退出当前插件。');});
 $('workspace').onchange=()=>task(chooseSpace);
 $('reload-spaces').onclick=()=>task(loadSpaces);
-$('read').onclick=()=>send({type:'capture'});
+$('read').onclick=()=>requestCapture();
+$('preview-background').onclick=()=>{
+  const dark=$('preview').dataset.background!=='dark';
+  $('preview').dataset.background=dark?'dark':'light';
+  $('preview-background').textContent=dark?'浅色底':'深色底';
+  $('preview-background').setAttribute('aria-pressed',String(dark));
+};
 $('open-workbench').onclick=()=>send({type:'open-workbench'});
 $('asset-form').addEventListener('input',()=>{clearPending();controls();});
 $('asset-form').addEventListener('change',()=>{clearPending();controls();});
@@ -124,4 +147,4 @@ $('update').onclick=()=>{const pending=model.pending;
   queueSync(pending.asset);
 };
 $('cancel-update').onclick=()=>{clearPending();message('已取消更新。可修改图标状态后重新同步。');controls();};
-controls();send({type:'ready'});
+controls();requestCapture('ready');
