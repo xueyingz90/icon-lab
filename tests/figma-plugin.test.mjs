@@ -131,9 +131,13 @@ test('bundled Figma UI logs in, saves source metadata, confirms duplicate update
   assert.doesNotMatch(d.getElementById('message').textContent,/未审核/);
   reply='duplicate';submit();await wait(()=>!d.getElementById('duplicate').hidden);
   assert.equal(saves().at(-1).body.p_asset_id,null);assert.equal(saves().length,2);
+  assert.equal(d.getElementById('sync').hidden,true);assert.equal(d.getElementById('duplicate-actions').hidden,false);
+  assert.ok(d.getElementById('update').closest('.upload-actions'));
+  assert.ok(d.getElementById('message').closest('.upload-actions'));
   reply='updated';d.getElementById('update').click();await wait(()=>saves().length===3 && !d.getElementById('sync').disabled);
   assert.equal(saves().at(-1).body.p_asset_id,'asset');assert.equal(saves().at(-1).body.p_expected_version,1);
   assert.match(d.getElementById('message').textContent,/v2/);
+  assert.equal(d.getElementById('sync').hidden,false);assert.equal(d.getElementById('duplicate-actions').hidden,true);
   reply='duplicate';submit();await wait(()=>!d.getElementById('duplicate').hidden);
   reply='conflict';d.getElementById('update').click();await wait(()=>d.getElementById('message').textContent.includes('资产已被更新'));
   assert.equal(d.getElementById('duplicate').hidden,true);

@@ -62,8 +62,10 @@ function controls() {
   $('session-retry').disabled=model.busy;
   ['logout','workspace','reload-spaces','read'].forEach(id=>$(id).disabled=model.busy);
   document.querySelectorAll('#asset-form input,#asset-form select,#asset-form textarea').forEach(n=>n.disabled=model.busy);
-  const reason=model.busy?'正在处理，请稍候。':!logged?'请先在上方登录资产库。':!model.selection?'请选中图标并点击“重新读取”，出现预览后才能同步。':!model.workspace?'请选择目标工作空间。':model.role==='viewer'?'当前空间为只读，需要空间所有者授予编辑权限。':!$('name').value.trim()?'请填写图标名称。':!$('asset-form').elements.namedItem('state_name').value.trim()?'请填写图标状态。':!$('source').value.trim()?'请填写当前 Figma 文件链接。':model.pending?'已发现已有资产，请在上方确认更新或取消。':'';
+  const reason=model.busy?'正在处理，请稍候。':!logged?'请先在上方登录资产库。':!model.selection?'请选中图标并点击“重新读取”，出现预览后才能同步。':!model.workspace?'请选择目标工作空间。':model.role==='viewer'?'当前空间为只读，需要空间所有者授予编辑权限。':!$('name').value.trim()?'请填写图标名称。':!$('asset-form').elements.namedItem('state_name').value.trim()?'请填写图标状态。':!$('source').value.trim()?'请填写当前 Figma 文件链接。':model.pending?'已发现已有资产，请在底部确认更新或取消。':'';
   $('sync').disabled=!!reason;
+  $('sync').hidden=!!model.pending;
+  $('duplicate-actions').hidden=!model.pending;
   $('sync-hint').textContent=reason || '预览已就绪，将同步到当前选中的工作空间。';
   $('update').disabled=model.busy || !logged || model.role==='viewer' || !model.pending;
   $('cancel-update').disabled=model.busy;
