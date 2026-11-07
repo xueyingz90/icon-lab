@@ -1,0 +1,117 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {Window} from 'happy-dom';
+import {validateGeneratedIcons} from '../ai-core.js';
+
+const wait=async predicate=>{for(let i=0;i<200;i++){if(predicate())return;await new Promise(r=>setTimeout(r,5));}throw Error('AI page condition timed out');};
+const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1kAAAAASUVORK5CYII=';
+
+test('actual AI UI confirms disclosure and specifications, rejects stale or unsafe results and saves reproducible SVG',async()=>{
+  const w=new Window({url:'http://localhost/',settings:{disableJavaScriptFileLoading:true,disableJavaScriptEvaluation:true,disableCSSFileLoading:true}});
+  const html=await fs.readFile(new URL('../index.html',import.meta.url),'utf8');
+  w.document.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
+  for(const name of ['window','document','navigator','localStorage','sessionStorage','DOMParser','XMLSerializer','CustomEvent','FormData','File','Event'])Object.defineProperty(globalThis,name,{value:name==='window'?w:w[name],configurable:true,writable:true});
+  globalThis.Image=class {naturalWidth=24;naturalHeight=24;set src(value){queueMicrotask(()=>this.onload());}};
+  w.HTMLCanvasElement.prototype.getContext=()=>({fillRect(){},drawImage(){}});
+  w.HTMLCanvasElement.prototype.toDataURL=()=>png;
+  const pngSizes=[],downloads=[];
+  w.HTMLCanvasElement.prototype.toBlob=function(callback){pngSizes.push(this.width);callback(new Blob(['test-png'],{type:'image/png'}));};
+  w.HTMLAnchorElement.prototype.click=function(){downloads.push(this.download);};
+  globalThis.matchMedia=w.matchMedia.bind(w);globalThis.requestAnimationFrame=w.requestAnimationFrame.bind(w);globalThis.cancelAnimationFrame=w.cancelAnimationFrame.bind(w);
+  const requests=[];let behavior='success',release;
+  const spec={canvas:24,stroke:1.75,color:'#252833',cap:'round',join:'round',padding:1,styleNotes:'等粗描边；低细节密度'};
+  const generated={name:'机械臂 <img onerror=alert(1)>',d:'M4 20L4 16L10 10L16 6L20 10 M3 20L12 20'};
+  const alternatives=[generated,{name:'折线机械臂',d:'M5 20L5 14L12 8L18 8L20 12 M3 20L14 20'},{name:'曲线机械臂',d:'M5 20L5 14Q10 6 17 7L20 12 M3 20L13 20'}];
+  globalThis.fetch=async(url,options)=>{
+    if(url==='/api/icon-ai'){
+      const body=JSON.parse(options.body);requests.push(body);
+      assert.equal(options.headers['Content-Type'],'application/json');
+      assert.ok(body.references.every(r=>r.preview===png && !r.svg.includes('onerror')));
+      if(behavior==='offline')throw Error('offline');
+      if(behavior==='deferred')await new Promise(resolve=>release=resolve);
+      const icons=body.operation==='analyze'?null:behavior==='unsafe'?[alternatives[0],{...alternatives[1],d:'M4 4"/><script/>'},alternatives[2]]:behavior==='duplicate'?[generated,generated,alternatives[2]]:behavior==='missing'?alternatives.slice(0,2):validateGeneratedIcons(alternatives,body.spec);
+      return new Response(JSON.stringify(body.operation==='analyze'?{spec,model:'mock-test-model'}:{icons,model:'mock-test-model'}),{headers:{'Content-Type':'application/json'}});
+    }
+    return new Response(await fs.readFile(new URL('../'+url,import.meta.url)));
+  };
+  try {
+    await import('../app.js');const d=w.document,$=id=>d.getElementById(id);
+    await wait(()=>w.iconflow&&d.querySelector('.catalog-card'));
+    d.querySelector('[data-mode="generate"]').click();
+    assert.equal($('generate').disabled,true);
+    $('ai-read').click();await wait(()=>$('ai-status').textContent.includes('允许'));
+    assert.equal(requests.length,0,'no reference is sent without disclosure consent');
+    $('ai-consent').checked=true;$('ai-read').click();
+    await wait(()=>!$('ai-read').disabled&&$('ai-status').textContent.includes('规范已读取'));
+    assert.equal($('stroke').value,'1.75');assert.equal($('ai-style-notes').value,spec.styleNotes);
+    assert.equal($('generate').disabled,true,'analysis never implicitly confirms');
+    $('ai-padding').value='';$('ai-padding').dispatchEvent(new w.Event('input'));
+    $('ai-confirm').click();assert.match($('ai-status').textContent,/安全留白/);assert.equal($('generate').disabled,true);
+    $('ai-padding').value='1';$('ai-padding').dispatchEvent(new w.Event('input'));
+    $('ai-confirm').click();assert.equal($('generate').disabled,false);
+    $('prompt').value='机械臂，用于自动化控制';$('generate').click();
+    await wait(()=>!$('generate').disabled&&$('ai-status').textContent.includes('结构与保守'));
+    assert.equal(requests.length,2);assert.deepEqual(requests[1].spec,spec);
+    assert.equal($('candidates').children.length,3);assert.equal($('preview-label').textContent,generated.name);
+    assert.equal($('icon-stage').querySelector('img'),null);assert.match($('code-view').textContent,/stroke-width="1.75"/);
+    for(const index of [1,2,1]){$('candidates').children[index].click();assert.equal($('preview-label').textContent,alternatives[index].name);assert.equal($('icon-stage').querySelector('path').getAttribute('d'),alternatives[index].d);assert.equal($('candidates').querySelectorAll('[aria-pressed="true"]').length,1);}
+    assert.equal(requests.length,2,'candidate selection makes no new model calls');
+    $('save-asset').click();let stored=JSON.parse(w.localStorage.getItem('iconflow-v1'));
+    assert.equal(stored.state.assets.length,1);assert.deepEqual(stored.state.assets[0].spec,spec);
+    assert.equal(stored.state.assets[0].d,alternatives[1].d);assert.equal(stored.state.aiCandidates.length,3);assert.equal(stored.state.aiCandidateIndex,1);
+    assert.equal(stored.state.assets[0].aiMeta.prompt,'机械臂，用于自动化控制');
+    assert.equal(stored.state.assets[0].aiMeta.references.length,3);
+    const original=$('code-view').textContent;
+    behavior='unsafe';$('generate').click();await wait(()=>!$('ai-read').disabled&&$('ai-status').dataset.error==='true');
+    assert.equal($('code-view').textContent,original,'invalid response retains the prior candidate');
+    for(const invalid of ['missing','duplicate']){behavior=invalid;$('generate').click();await wait(()=>!$('ai-read').disabled&&$('ai-status').dataset.error==='true');assert.equal($('code-view').textContent,original);assert.equal($('candidates').children.length,3);assert.equal($('candidates').children[1].getAttribute('aria-pressed'),'true');}
+    behavior='offline';$('generate').click();await wait(()=>!$('ai-read').disabled&&$('ai-status').textContent.includes('无法连接'));
+    assert.equal($('code-view').textContent,original);
+    $('stroke').value='2';$('stroke').dispatchEvent(new w.Event('input'));
+    assert.equal($('generate').disabled,true);assert.equal($('code-view').textContent,original,'target edits do not alter the accepted SVG');
+    $('ai-confirm').click();assert.equal($('generate').disabled,false);
+    $('save-asset').click();stored=JSON.parse(w.localStorage.getItem('iconflow-v1'));
+    assert.equal(stored.state.assets[1].stroke,1.75,'save uses generation spec, not edited target');
+    behavior='deferred';$('generate').click();await wait(()=>release);
+    $('prompt').value='新描述';release();await wait(()=>!$('ai-read').disabled&&$('ai-status').textContent.includes('过期候选'));
+    assert.equal($('code-view').textContent,original);
+    d.querySelector('[data-mode="assets"]').click();
+    assert.equal(d.querySelectorAll('.asset-card').length,2);
+    d.querySelector('.asset-more').open=true;Array.from(d.querySelectorAll('.asset-actions button')).find(b=>b.textContent==='编辑').click();
+    assert.match($('code-view').textContent,/stroke-width="1.75"/);assert.equal($('stroke').value,'1.75');
+    $('export-open').click();assert.equal($('export-dialog').open,true);
+    assert.equal(d.querySelector('[name=format][value=svg]').disabled,false);
+    d.querySelector('[name=format][value=png]').checked=true;
+    for(const size of [64,128]){$('export-size').value=String(size);$('download').click();await wait(()=>!$('download').disabled);assert.equal(pngSizes.at(-1),size);assert.equal(downloads.at(-1),'iconflow-frame.png');assert.doesNotMatch($('toast').textContent,/失败/);}
+    $('export-close').click();
+    $('ai-confirm').click();release=null;behavior='deferred';$('generate').click();await wait(()=>release);
+    const beforeReset=JSON.parse(JSON.stringify(w.iconflow.state)),samePrompt=$('prompt').value;
+    $('demo-start').click();
+    Object.assign(w.iconflow.state,{stroke:beforeReset.stroke,color:beforeReset.color,cap:beforeReset.cap,join:beforeReset.join,references:beforeReset.references});
+    for(const [id,value]of [['stroke',beforeReset.stroke],['color',beforeReset.color],['linecap',beforeReset.cap],['linejoin',beforeReset.join]])$(id).value=String(value);
+    $('prompt').value=samePrompt;const resetPreview=$('code-view').textContent;
+    release();await wait(()=>!$('ai-read').disabled&&$('ai-status').textContent.includes('过期候选'));
+    assert.equal($('code-view').textContent,resetPreview,'reset discards a request even when its input signature is restored');
+    const remove=$('references').querySelector('button');remove.click();assert.equal($('generate').disabled,true);assert.equal($('ai-confirm').disabled,true);
+    w.iconflow.stop();
+    const restored=JSON.parse(w.localStorage.getItem('iconflow-v1'));
+    Object.assign(restored.state,{selected:'model',mode:'generate',stroke:1.75,cap:'butt',join:'bevel',aiPadding:1,aiStyleNotes:spec.styleNotes});
+    const restoredSpec={...spec,cap:'butt',join:'bevel'};
+    restored.state.aiSpec={definition:restoredSpec,references:JSON.stringify(restored.state.references.map(r=>({name:r.name,markup:r.markup}))),confirmed:true};
+    restored.state.aiSpec.signature=JSON.stringify({references:restored.state.aiSpec.references,spec:restoredSpec});
+    w.localStorage.setItem('iconflow-v1',JSON.stringify(restored));
+    d.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
+    await import('../app.js?restore-spec-test');
+    assert.equal($('stroke').value,'1.75');assert.equal($('linecap').value,'butt');assert.equal($('linejoin').value,'bevel');assert.equal($('generate').disabled,false,'restoring demo selection preserves confirmed target spec');
+    w.iconflow.stop();
+    Object.assign(restored.state,{selected:'ai-generated',aiCandidates:validateGeneratedIcons(alternatives,spec).map(icon=>({...icon,aiMeta:stored.state.assets[0].aiMeta})),aiCandidateIndex:2});
+    w.localStorage.setItem('iconflow-v1',JSON.stringify(restored));
+    d.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');
+    const beforeReload=requests.length;
+    await import('../app.js?restore-candidates-test');
+    assert.equal($('candidates').children.length,3);assert.equal($('preview-label').textContent,alternatives[2].name);assert.equal($('candidates').children[2].getAttribute('aria-pressed'),'true');
+    assert.equal($('icon-stage').querySelector('path').getAttribute('d'),alternatives[2].d);assert.equal(requests.length,beforeReload,'reload never generates again');
+    w.iconflow.stop();
+  } finally {await w.happyDOM.abort();}
+});

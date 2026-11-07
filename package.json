@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "dev": "node --env-file-if-exists=.env scripts/dev-server.mjs",
     "build:figma": "node scripts/build-figma-plugin.mjs"
   },
   "devDependencies": {

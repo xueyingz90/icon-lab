@@ -57,9 +57,68 @@ Project URL 和 Publishable key 可放进根目录 `cloud-config.js` 后发布�
 - 同步提交通过数据库事务执行；历史版本只能读，前端不能直接改表。
 - Supabase 保存后不等于拥有公司原始 Figma 文件访问权。点击来源仍受 Figma 自身权限控制。
 
+## AI 规范读取与图标生成
+
+AI 链路支持 24 × 24 单色线性 SVG：参考 SVG 与 256px PNG 预览 → AI 规范建议 → 人工确认 → 一次请求生成三个候选 → 逐项结构与保守描边边界校验 → 对比选择 → 本地项目保存。模型返回含三个 `{name,d}` 的 `icons` 数组对象，只允许 M、L、C、Q、Z 绝对路径；程序按确认规范组装 SVG，拒绝重复路径。整组无效最多修正一次，未全部通过时保留上一组，不会用演示图标伪装成功。系统提示按分析/生成分别精简，参考 SVG、图片与用户填写的规范不截短；字符减少不等于实际 token 或 credits 同比例减少。三个候选共用一次调用，但输出费用可能高于单个结果。
+
+### 本地联调
+
+需要 Node.js 24。在项目根目录使用被 Git 忽略的 `.env`，参考 `.env.example` 选择一个服务端提供商。网页的“本地服务端 / Supabase 云端”只决定传输方式，不决定模型提供商。
+
+OpenAI 兼容模式需要支持图像输入、JSON 输出的 Chat Completions 模型：
+
+```dotenv
+AI_PROVIDER=openai
+MODEL_API_URL=实际的完整ChatCompletionsHTTPS接口地址
+MODEL_API_KEY=仅服务端保管的模型密钥
+MODEL_NAME=实际支持图像输入的模型名称
+```
+
+`MODEL_API_URL` 是完整请求地址，包含提供商要求的 API 路径；服务不会自行拼接 `/chat/completions`。未设置 `AI_PROVIDER` 时默认使用此模式。
+
+Qoder Cloud Agents 使用 Managed API，不是 Chat Completions 接口：
+
+```dotenv
+AI_PROVIDER=qoder
+QODER_PAT=仅服务端保管的个人访问令牌
+QODER_AGENT_ID=专用Agent的资源ID
+QODER_ENVIRONMENT_ID=已有运行环境的资源ID
+QODER_MODEL=ultimate
+QODER_MAX_CREDITS=10.00
+```
+
+专用 Agent 的模型必须与 `QODER_MODEL` 一致，`tools`、`mcp_servers`、`skills` 必须都是空数组，不能启用多 Agent 编排。适配器先验证配置并固定 Agent 版本，再为每次分析、生成或修复创建独立会话；发送参考统计、SVG 文本和 base64 PNG，不上传文件。模型正常完成后归档会话；超时或失败时尝试取消，确认空闲后才归档。取消或归档未确认时服务端会提示检查控制台，不能直接认定远端任务已停止。
+
+`QODER_MAX_CREDITS` 是每个会话的软预算，不是本次推理费用硬上限：超过预算时当前轮仍可能完成，后续消息才会被拒绝。生成若触发一次修复，会使用另一个会话和预算。每次调用最多等待 60 秒；取消不保证即时停止计费。真实推理会消耗 Qoder 额度，图像能力与生成质量需另行验收。
+
+所选提供商配置缺失时接口明确返回 503，不会产生模拟结果。不要把 PAT 或模型密钥放入 `cloud-config.js`、网页输入框或 Git；修改 `.env` 后重启本地服务。
+
+```sh
+npm install
+npm run dev
+```
+
+打开终端显示的本地地址，进入“同风格生成”，选择“本地服务端”。上传参考后勾选发送确认，点击“AI 读取规范”，检查并编辑右侧规范，再点击“确认当前规范”。输入新图标描述并生成，检查语义后保存到项目资产。修改参考后需要重新读取；修改目标规范后需要重新确认。已有候选保留生成时的规范，不随目标修改而改变。
+
+本地 API 仅绑定 127.0.0.1，拒绝跨 Origin 或缺少 Origin 的 POST。静态服务器不提供 `.env`、Git、后端与测试文件。限流和并发控制用于私人联调，不是持久的生产配额。
+
+### GitHub Pages 与 Supabase
+
+GitHub Pages 不能保管密钥或执行模型代理。保留静态前端，在已有 Supabase 项目部署 `supabase/functions/icon-ai/index.ts`；新增函数未自动发布。服务端按上方选择 `AI_PROVIDER` 和对应的 `MODEL_*` 或 `QODER_*` secrets，同时设置：
+
+- `AI_ALLOWED_ORIGINS`：精确的网页 Origin，当前为 `https://xueyingz90.github.io`，不含 `/icon-lab/`；不允许通配符。
+- `AI_ALLOWED_USER_IDS`：允许使用模型的已注册 Supabase 用户 UUID，多个用英文逗号分隔；不能填写邮箱。缺失时拒绝调用。
+- Supabase 自动提供的 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY` 用于验证用户令牌，不使用模型密钥充当前端身份。
+
+配置 secrets 后使用 Supabase CLI 部署 `icon-ai` 函数。不要关闭 JWT 验证。网页选择“Supabase 云端”，通过“云端账号”登录后即可调用；模型请求使用该登录会话。用户仍需勾选参考发送确认，登录并不自动上传素材。
+
+云端按已验证用户限制请求频率与并发，但计数在函数实例内存中，实例重启或多实例不会共享；仅适用于明确用户白名单的私人原型。扩大用户范围前应接入持久额度、费用预算和监控。
+
+AI 候选保存规范、输入描述、模型名称、生成时间与参考 SVG 快照；保存地点是“项目资产”的当前浏览器，不会自动同步到云资产库。清除浏览器数据会丢失本地项目，请备份。视觉重心、语义和风格一致性始终需要人工验收。
+
 ## 本地开发与验证
 
-无前端构建步骤。使用本地静态服务器提供根目录文件，例如：
+无前端构建步骤。`npm run dev` 同时提供静态页面和本地 AI 接口。仅查看原有资产与动效、不调用 AI 时，仍可使用静态服务器：
 
 ```sh
 python3 -m http.server 4173 --bind 127.0.0.1
@@ -68,15 +127,16 @@ python3 -m http.server 4173 --bind 127.0.0.1
 测试依赖只用于开发，不会被网页加载：
 
 ```sh
-npm install
 npm test
 ```
+
+AI 自动化测试使用明确标注的模拟模型传输，验证协议、校验、失败路径与保存，不代表已经通过真实模型质量或上线验收。
 
 测试覆盖 SVG 导入、重复与版本冲突、会话请求，以及真实 PostgreSQL 引擎中的工作空间隔离与角色权限。它们不能替代真实 Supabase Auth、邮件配置和两台电脑的上线验收。
 
 ## 本阶段之后
 
-Figma 单图标同步已由用户确认跑通；当前开发包新增资源库，见 [安装与验收](../figma-plugin/README.md)。继续复用已有 `il_save_asset`，本版只增加兼容的分类字段。采用现有网络域名、仅本次运行的会话和显式更新确认。新版上传回归和矢量插入需实机验收。AI 生成、审核发布、复杂形变和 MCP 不在本次范围。
+Figma 单图标同步已由用户确认跑通；当前开发包新增资源库，见 [安装与验收](../figma-plugin/README.md)。继续复用已有 `il_save_asset`，本版只增加兼容的分类字段。采用现有网络域名、仅本次运行的会话和显式更新确认。新版上传回归和矢量插入需实机验收。AI 接入见上方新增链路；审核发布、复杂形变和 MCP 尚未实现。
 
 官方参考：
 - https://supabase.com/docs/guides/getting-started/api-keys

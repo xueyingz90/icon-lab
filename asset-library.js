@@ -84,7 +84,7 @@ function showCatalog() {
   localStorage.setItem('iconlab.lastView','catalog');
   render();
 }
-window.addEventListener('iconlab:mode', () => {root.hidden=true; ['demo-start','export-open','backup','save-status'].forEach(id => $(id).hidden=false); localStorage.setItem('iconlab.lastView','workbench'); document.querySelector('.workspace-footer').firstElementChild.textContent='动效编辑数据保存在当前浏览器；资产库可单独连接云端';});
+window.addEventListener('iconlab:mode', () => {root.hidden=true; ['demo-start','export-open','backup','save-status'].forEach(id => $(id).hidden=false); localStorage.setItem('iconlab.lastView','workbench'); document.querySelector('.workspace-footer').firstElementChild.textContent='项目保存在本地；AI 仅在确认后发送参考；资产库可单独连接云端';});
 
 function persistLocal(records) {localStorage.setItem(LOCAL_KEY, JSON.stringify(records)); model.assets=records;}
 async function localRecords() {
