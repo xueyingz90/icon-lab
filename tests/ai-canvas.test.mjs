@@ -47,6 +47,7 @@ test('real request handler supports larger/rectangular targets, explicit model s
  let calls=0;const repaired=await handleAIRequest(request('analyze'),{model:'test',callModel:async messages=>{calls++;if(calls===1)return {spec:{canvas:'wrong'}};assert.match(messages.at(-1).content,/唯一一次修复/);return {spec:base};}});
  assert.equal(calls,2);assert.equal(repaired.spec.canvas,32);
  const direct=await handleAIRequest(request('analyze'),{model:'test',callModel:async()=>({...base,canvas:'32×32'})});assert.equal(direct.spec.canvas,32);
- calls=0;await assert.rejects(handleAIRequest(request('analyze'),{model:'test',callModel:async()=>{calls++;return {spec:{...base,canvas:64}};}}),/target.canvas/);assert.equal(calls,2);
+ calls=0;const userCanvas=await handleAIRequest(request('analyze'),{model:'test',callModel:async()=>{calls++;return {spec:{...base,canvas:64}};}});assert.equal(userCanvas.spec.canvas,32);assert.equal(calls,1,'model cannot override the explicit user canvas');
+ const missingCanvas=await handleAIRequest(request('analyze'),{model:'test',callModel:async()=>{const {canvas,...style}=base;return {spec:style};}});assert.equal(missingCanvas.spec.canvas,32);
  calls=0;await assert.rejects(handleAIRequest(request('analyze'),{model:'test',callModel:async()=>{calls++;return {};}}),/缺少完整 spec/);assert.equal(calls,2);
 });

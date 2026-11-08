@@ -113,7 +113,7 @@ function messagesFor(operation, references, spec, prompt) {
   const data = {
     operation,
     references: references.map(({ preview, ...ref }, index) => ({ ...ref, previewIndex: index + 1 })),
-    ...(operation === 'analyze' ? { target: spec, responseExample:{spec}, canvasRule:'canvas 必须保持 target.canvas；数值字段不可输出单位或说明文字。' } : { spec, prompt, canvasSize:canvasDimensions(spec.canvas) })
+    ...(operation === 'analyze' ? { target: spec, responseExample:{spec}, canvasRule:'生成画布由用户指定的 target.canvas 决定；仅分析风格参数，数值字段不可输出单位或说明文字。' } : { spec, prompt, canvasSize:canvasDimensions(spec.canvas) })
   };
   return [
     { role: 'system', content: `${SYSTEM_PROMPT}\n${instructions}` },
@@ -394,11 +394,11 @@ export async function handleAIRequest(body, { callModel, model } = {}) {
   const messages = messagesFor(body.operation, references, spec, body.prompt);
   if (body.operation === 'analyze') {
     const parse = output => {
-      const candidate=record(output?.spec)?output.spec:record(output)&&Object.hasOwn(output,'canvas')?output:null;
+      const candidate=record(output?.spec)?output.spec:record(output)&&Object.hasOwn(output,'stroke')?output:null;
       if(!candidate) throw Error('缺少完整 spec 对象。');
-      const normalized=normalizeSpec(candidate);
-      if(JSON.stringify(normalized.canvas)!==JSON.stringify(spec.canvas)) throw Error('返回画布与用户指定的 target.canvas 不一致。');
-      return normalized;
+      // Canvas is an explicit user setting, not an inference delegated to the model.
+      // All inferred style fields still undergo strict validation; none receive defaults.
+      return normalizeSpec({...candidate,canvas:spec.canvas});
     };
     let output = await callModel(messages);
     try { return { spec: parse(output), model }; }
