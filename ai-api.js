@@ -211,11 +211,11 @@ async function* qoderBody(body, signal) {
   }
 }
 
-async function qoderJSON(path, { key, fetcher, signal, body, method = body === undefined ? 'GET' : 'POST' }) {
+async function qoderJSON(path, { key, fetcher, signal, body, beta, method = body === undefined ? 'GET' : 'POST' }) {
   signal.throwIfAborted();
   const response = await fetcher(QODER_BASE + path, {
     method, redirect: 'error', signal,
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...(beta?{'x-qoder-beta':beta}:{}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
   if (!response.ok) { await response.body?.cancel(); throw qoderHTTPError(response.status); }
@@ -331,6 +331,14 @@ export function createQoderCaller(config, { fetcher = globalThis.fetch } = {}) {
           } });
           if (typeof session.id !== 'string' || !/^sess_[A-Za-z0-9_-]{1,128}$/.test(session.id) || session.type !== 'session') throw qoderProtocolError();
           sessionId = session.id;
+          // Replace inherited template rules for this new session only; never mutate the shared Agent.
+          if(typeof agent.system==='string' && agent.system!==messages[0].content){
+            const patched=await qoderJSON(`/sessions/${sessionId}`,{...options,beta:'session-agent-patch-2026-07-21',body:{agent:{system:messages[0].content}}});
+            if(patched?.id!==sessionId || patched.type!=='session' || patched.agent?.system!==messages[0].content ||
+               ['tools','mcp_servers','skills'].some(field=>!Array.isArray(patched.agent[field])||patched.agent[field].length)){
+              throw new AIError(502,'Qoder 会话规范未正确更新，已停止本次请求。','qoder_session_config');
+            }
+          }
           if (controller.signal.aborted) throw timeoutError();
           const acknowledged = await qoderJSON(`/sessions/${sessionId}/events`, { ...options, body: { events: [
             { type: 'user.message', content: qoderContent(messages) },

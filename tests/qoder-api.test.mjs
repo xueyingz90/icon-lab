@@ -949,3 +949,24 @@ test('default OpenAI still fails closed when its settings are missing', () => {
     }, { fetcher: async () => assert.fail('invalid config must not fetch') }), safeError(503, ['openai-test-secret']));
   }
 });
+
+test('request-specific runtime system replaces inherited 24px template before inference without changing the shared Agent',async()=>{
+ const input=messages();input[0].content+='\nCustom canvas follows user target.';
+ const fake=cloud({agentChanges:{system:'Only canvas=24'},override:call=>{
+  if(route(call)==='POST /sessions/sess_test'){
+   assert.equal(call.headers.get('x-qoder-beta'),'session-agent-patch-2026-07-21');
+   assert.deepEqual(call.body,{agent:{system:input[0].content}});
+   return Response.json(session({agent:agent({system:input[0].content})}));
+  }
+ }});
+ await createQoderCaller(config,{fetcher:fake.fetcher})(input);
+ const order=routes(fake);assert.ok(order.indexOf('POST /sessions/sess_test')<order.indexOf('POST /sessions/sess_test/events'));
+ assert.equal(count(fake,'POST /agents/agent_test'),0);assert.equal(count(fake,'POST /sessions/sess_test/archive'),1);
+ assert.deepEqual(fake.unexpected,[]);
+});
+
+test('unapplied runtime system patch stops before sending reference material and cleans up the session',async()=>{
+ const fake=cloud({agentChanges:{system:'Only canvas=24'},override:call=>route(call)==='POST /sessions/sess_test'?Response.json(session({agent:agent({system:'unchanged'})})):undefined});
+ await assert.rejects(createQoderCaller(config,{fetcher:fake.fetcher})(messages()),error=>error.code==='qoder_session_config');
+ assert.equal(count(fake,'POST /sessions/sess_test/events'),0);assert.equal(count(fake,'POST /sessions/sess_test/cancel'),1);assert.equal(count(fake,'POST /sessions/sess_test/archive'),1);
+});
