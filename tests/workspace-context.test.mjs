@@ -19,8 +19,8 @@ test('mixed reference canvases, demo provenance, local destinations and plugin h
   assert.match(d.querySelector('[data-scope=demo]').textContent,/50/);
   $('figma-help-open').click();assert.equal($('figma-help-dialog').open,true);
   const download=d.querySelector('#figma-help-dialog a[download]');
-  assert.match(download.href,/v0\.4\.4\.zip$/);
-  await fs.access(new URL('../figma-plugin/icon-lab-figma-sync-v0.4.4.zip',import.meta.url));
+  assert.match(download.href,/v0\.5\.0\.zip$/);
+  await fs.access(new URL('../figma-plugin/icon-lab-figma-sync-v0.5.0.zip',import.meta.url));
   $('figma-help-close').click();assert.equal($('figma-help-dialog').open,false);
   $('catalog-add').click();assert.match($('catalog-save').textContent,/本地资产库/);$('catalog-upload').close();
   d.querySelector('[data-mode=generate]').click();
@@ -42,6 +42,8 @@ test('mixed reference canvases, demo provenance, local destinations and plugin h
   mount();await import('../app.js?workspace-context-reload');
   assert.match($('viewbox-display').textContent,/32 × 32/);assert.equal($('target-viewbox-display').textContent,'24 × 24');
   assert.match($('candidate-source').textContent,/非 AI/);assert.equal(w.iconflow.state.assets.length,1);assert.equal(modelCalls,0);
+  w.location.hash='#ai-settings';w.dispatchEvent(new w.Event('hashchange'));
+  assert.equal(d.body.dataset.view,'generate');assert.equal($('ai-connection-details').open,true);
   w.iconflow.stop();
  }finally{await w.happyDOM.abort();}
 });

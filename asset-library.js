@@ -308,6 +308,14 @@ function openAccountSettings() {
   showCatalog(); connection();
 }
 window.addEventListener('hashchange',openAccountSettings);
+function openAISettings(){
+  if(window.location.hash!=='#ai-settings')return;
+  document.querySelector('[data-mode="generate"]').click();
+  const details=$('ai-connection-details');details.open=true;
+  if(details.scrollIntoView)details.scrollIntoView({block:'start'});
+}
+window.addEventListener('hashchange',openAISettings);
+
 $('catalog-connection').addEventListener('close',()=>{
   if(window.location.hash==='#account-settings') window.history.replaceState(null,'',window.location.pathname+window.location.search);
 });
@@ -320,6 +328,6 @@ async function init() {
   await standards.load();
   if(model.client?.session) {try{await connectAccount();}catch(e){model.mode='cloud';model.assets=[];render();showError(Error('云端暂时不可用：'+e.message+'。可退出登录使用本地试用。'));}}
   render(); if(localStorage.getItem('iconlab.lastView')!=='workbench')showCatalog();
-  openAccountSettings();
+  openAccountSettings();openAISettings();
 }
 init().catch(showError);

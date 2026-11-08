@@ -112,5 +112,5 @@ function createPluginAIHost({figma,post}){
     if(page.on)page.on('nodechange',pageHandler);
   }
   bindPage();figma.on('currentpagechange',()=>{invalidate();bindPage();});
-  return {invalidate,handleMessage(m){if(m.type==='ai-capture')void capture(m);if(m.type==='ai-request')void request(m);if(m.type==='ai-insert')void insert(m);if(m.type==='ai-manage')figma.openExternal('https://xueyingz90.github.io/icon-lab/#account-settings');}};
+  return {invalidate,handleMessage(m){if(m.type==='ai-capture')void capture(m);if(m.type==='ai-request')void request(m);if(m.type==='ai-insert')void insert(m);if(m.type==='ai-manage')figma.openExternal('https://xueyingz90.github.io/icon-lab/#ai-settings');}};
 }
