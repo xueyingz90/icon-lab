@@ -35,9 +35,9 @@
 <div class="pai-title"><strong>选区 AI 生成</strong><span id="pai-progress" class="muted">待选取参考</span></div>
 <div class="pai-selection"><div id="pai-preview">选中一个图标画板</div><div><strong id="pai-reference-name">参考图标</strong><small id="pai-reference-state">支持 Frame / Component / Instance</small><button id="pai-capture" type="button">读取选区</button></div></div>
 <p id="pai-facts" class="muted">本地读取尺寸与描边；不会自动发送素材。</p>
-<details id="pai-spec"><summary>目标规范 · 可编辑</summary><p class="muted">原始参数见上方；以下为生成目标。当前支持单色线性图标。</p><div class="grid">
+<details id="pai-spec"><summary>目标规范 · 可编辑</summary><p class="muted">原始参数见上方；以下为生成目标。支持单色线性和面形；面形使用闭合轮廓及 evenodd 镂空。</p><div class="grid">
 <label>宽<input id="pai-width" type="number" min="1" max="4096" step="any"></label><label>高<input id="pai-height" type="number" min="1" max="4096" step="any"></label>
-<label>描边<input id="pai-stroke" type="number" min="0.5" step="0.25"></label><label>颜色<input id="pai-color" placeholder="#252833" maxlength="7"></label>
+<label class="full">图形结构<select id="pai-mode"><option value="outline">线性 · 描边</option><option value="filled">面形 · 填充</option></select></label><label>描边<input id="pai-stroke" type="number" min="0.5" step="0.25"></label><label>颜色<input id="pai-color" placeholder="#252833" maxlength="7"></label>
 <label>端点<select id="pai-cap"><option value="">待指定</option><option value="round">圆头</option><option value="butt">平头</option><option value="square">方头</option></select></label>
 <label>连接<select id="pai-join"><option value="">待指定</option><option value="round">圆角</option><option value="miter">尖角</option><option value="bevel">斜角</option></select></label>
 <label class="full">安全留白 · 目标设定<input id="pai-padding" type="number" min="0" step="0.25" value="1"></label>
@@ -50,7 +50,7 @@
 <p id="pai-status" class="message" role="status" aria-live="polite">选中一个图标画板，然后读取选区。</p>
 <div id="pai-results" hidden><strong>候选图标</strong><div id="pai-candidates"></div><p id="pai-result-note" class="muted"></p><button id="pai-insert" type="button" class="primary wide">插入所选图标并准备入库</button><p class="muted">结果放在参考旁，保留原图。插入后可撤销；入库需在上传页另行确认。</p></div>
 </section>
-<footer><p class="muted" style="font-size:10px">v0.5.0 · 选区 AI 生成</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
+<footer><p class="muted" style="font-size:10px">v0.6.0 · 选区 AI 生成</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
 </main><script>"use strict";
 (()=>{
 const PluginAICore=(()=>{//#region src/core/parse.ts
@@ -614,13 +614,18 @@ function canvasDimensions(value) {
 function normalizeSpec(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('规范必须是包含 canvas 等字段的对象。');
   const canvas=normalizeCanvas(value.canvas),{width,height}=canvasDimensions(canvas),edge=Math.min(width,height);
-  if (!Number.isFinite(value.stroke) || value.stroke < 0.5 || value.stroke > edge/2) throw Error('描边宽度需至少 0.5，且不超过画布短边的一半。');
+  const mode=value.renderMode??'outline';
+  if(!['outline','filled'].includes(mode))throw Error('图形结构请选择线性或面形。');
+  const filled=mode==='filled';
+  if(filled&&value.fillRule!==undefined&&value.fillRule!=='evenodd')throw Error('面形镂空规则必须为 evenodd。');
+  if (!filled && !Number.isFinite(value.stroke)) throw Error('请填写线性图标的描边宽度；面形图标请选择面形模式。');
+  if (!filled && (!Number.isFinite(value.stroke) || value.stroke < 0.5 || value.stroke > edge/2)) throw Error('描边宽度需至少 0.5，且不超过画布短边的一半。');
   if (typeof value.color !== 'string' || !/^#[\da-f]{6}$/i.test(value.color)) throw Error('图标颜色应为六位十六进制色值。');
-  if (!['round','butt','square'].includes(value.cap)) throw Error('描边端点无效。');
-  if (!['round','miter','bevel'].includes(value.join)) throw Error('描边连接无效。');
+  if (!filled && !['round','butt','square'].includes(value.cap)) throw Error('描边端点无效。');
+  if (!filled && !['round','miter','bevel'].includes(value.join)) throw Error('描边连接无效。');
   if (!Number.isFinite(value.padding) || value.padding < 0 || value.padding >= edge/2) throw Error('安全留白需为非负数字，且小于画布短边的一半。');
   if (typeof value.styleNotes !== 'string' || value.styleNotes.length > 1000) throw Error('风格说明最长为 1000 字符。');
-  return {canvas,stroke:value.stroke,color:value.color.toLowerCase(),cap:value.cap,join:value.join,padding:value.padding,styleNotes:value.styleNotes.trim()};
+  return {canvas,stroke:filled?0:value.stroke,color:value.color.toLowerCase(),cap:filled?'round':value.cap,join:filled?'round':value.join,padding:value.padding,styleNotes:value.styleNotes.trim(),...(filled?{renderMode:'filled',fillRule:'evenodd'}:{})};
 }
 
 function parseGeneratedPath(d) {
@@ -671,6 +676,26 @@ function generatedGeometryKey(paths) {
   }).sort());
 }
 
+// Filled output requires explicit closed contours with visible area; never silently
+// close an open stroke. Evenodd holes use the same compound path in every export.
+function validateFilledPaths(paths) {
+  if(paths.some(p=>!p.closed))throw Error('面形图标的每个轮廓必须以 Z 闭合。');
+  const seen=new Set();
+  for(const path of paths){
+    const key=generatedGeometryKey([path]);
+    if(seen.has(key))throw Error('面形图标存在重复轮廓，会导致镂空抵消。');
+    seen.add(key);
+    // Integrate x dy - y dx exactly using cubic polynomial coefficients.
+    let area=0;
+    for(let i=0;i+7<path.pts.length;i+=6){
+      const p=path.pts,coeff=offset=>{const a=p[i+offset],b=p[i+2+offset],c=p[i+4+offset],d=p[i+6+offset];return [a,3*(b-a),3*(a-2*b+c),-a+3*b-3*c+d];};
+      const x=coeff(0),y=coeff(1);
+      for(let j=0;j<4;j++)for(let k=1;k<4;k++)area+=(x[j]*k*y[k]-y[j]*k*x[k])/(j+k);
+    }
+    if(Math.abs(area)<1e-6)throw Error('面形轮廓没有可用面积，请使用非退化闭合形状。');
+  }
+}
+
 function extrema(a, b, c, d) {
   const values = [a,d], A = -a + 3*b - 3*c + d, B = 2*(a - 2*b + c), C = b-a;
   const roots = [];
@@ -687,6 +712,8 @@ function validateGeneratedIcon(value, definition) {
   const spec = normalizeSpec(definition);
   if (!value || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw Error('生成图标需要 1–80 字符的名称。');
   const paths = parseGeneratedPath(value.d);
+  const filled=spec.renderMode==='filled';
+  if(filled)validateFilledPaths(paths);
   const xs = [], ys = [];
   for (const path of paths) for (let i = 0; i+7 < path.pts.length; i += 6) {
     const p = path.pts;
@@ -695,11 +722,11 @@ function validateGeneratedIcon(value, definition) {
   }
   if (!xs.length || !ys.length) throw Error('生成图标没有可见路径。');
   const {width,height}=canvasDimensions(spec.canvas);
-  const radius = spec.stroke/2 * (spec.join === 'miter' ? 4 : spec.cap === 'square' ? Math.SQRT2 : 1);
+  const radius = filled?0:spec.stroke/2 * (spec.join === 'miter' ? 4 : spec.cap === 'square' ? Math.SQRT2 : 1);
   const bounds = {left:Math.min(...xs)-radius,top:Math.min(...ys)-radius,right:Math.max(...xs)+radius,bottom:Math.max(...ys)+radius};
   if (bounds.left < spec.padding-1e-6 || bounds.top < spec.padding-1e-6 || bounds.right > width-spec.padding+1e-6 || bounds.bottom > height-spec.padding+1e-6) throw Error(`路径或描边超出安全区域；X 需位于 ${spec.padding}–${width-spec.padding}，Y 需位于 ${spec.padding}–${height-spec.padding}。`);
   if (Math.max(...xs)-Math.min(...xs) < 0.01 && Math.max(...ys)-Math.min(...ys) < 0.01) throw Error('生成图标退化为一个点。');
-  return {name:value.name.trim(),d:value.d.trim(),stroke:spec.stroke,color:spec.color,cap:spec.cap,join:spec.join,fill:false,spec,validation:{status:'pass',bounds,manual:'图标语义、视觉重心与风格一致性仍需人工确认。'}};
+  return {name:value.name.trim(),d:value.d.trim(),stroke:spec.stroke,color:spec.color,cap:spec.cap,join:spec.join,fill:filled,...(filled?{fillRule:'evenodd'}:{}),spec,validation:{status:'pass',bounds,manual:'图标语义、视觉重心与风格一致性仍需人工确认。'}};
 }
 
 function validateGeneratedIcons(value, definition) {
@@ -721,6 +748,7 @@ function generatedSVG(icon, size) {
   if (size!==undefined && (![16,24,32,64,106,128,256].includes(size))) throw Error('预览尺寸无效。');
   const scale=size===undefined?1:size/Math.max(canvas.width,canvas.height);
   const width=canvas.width*scale,height=canvas.height*scale;
+  if(safe.fill)return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${canvas.width} ${canvas.height}" fill="${safe.color}" fill-rule="evenodd" stroke="none"><path d="${safe.d}"/></svg>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${canvas.width} ${canvas.height}" fill="none" stroke="${safe.color}" stroke-width="${safe.stroke}" stroke-linecap="${safe.cap}" stroke-linejoin="${safe.join}" stroke-miterlimit="4"><path d="${safe.d}"/></svg>`;
 }
 
@@ -1155,14 +1183,15 @@ function createRememberedSession({client,send,onChange=()=>{},onStatus=()=>{},ti
 function createPluginAI({client,context,send,onSessionExpired,onInserted}){
   const $=id=>document.getElementById(id),core=PluginAICore;
   let reference=null,confirmed=null,candidates=[],index=0,busy=false,revision=0,counter=0,key='',resultRevision=-1;
-  const pending=new Map(),fields=['pai-width','pai-height','pai-stroke','pai-color','pai-cap','pai-join','pai-padding','pai-notes'];
+  const pending=new Map(),fields=['pai-mode','pai-width','pai-height','pai-stroke','pai-color','pai-cap','pai-join','pai-padding','pai-notes'];
   const currentKey=()=>client.session?.user?.id?client.session.user.id+':'+context().workspace:'';
   const message=(text,error=false)=>{$('pai-status').textContent=text;$('pai-status').dataset.tone=error?'error':'info';};
   const signature=()=>JSON.stringify({token:reference?.token,spec:spec()});
-  function spec(){return core.normalizeSpec({canvas:{width:Number($('pai-width').value),height:Number($('pai-height').value)},stroke:$('pai-stroke').value.trim()?Number($('pai-stroke').value):NaN,color:$('pai-color').value.trim(),cap:$('pai-cap').value,join:$('pai-join').value,padding:$('pai-padding').value.trim()?Number($('pai-padding').value):NaN,styleNotes:$('pai-notes').value});}
+  function spec(){return core.normalizeSpec({renderMode:$('pai-mode').value,canvas:{width:Number($('pai-width').value),height:Number($('pai-height').value)},stroke:$('pai-stroke').value.trim()?Number($('pai-stroke').value):NaN,color:$('pai-color').value.trim(),cap:$('pai-cap').value,join:$('pai-join').value,padding:$('pai-padding').value.trim()?Number($('pai-padding').value):NaN,styleNotes:$('pai-notes').value});}
   function update(){
     let valid=false;try{valid=!!reference&&confirmed===signature();}catch(_){}
     fields.forEach(id=>$(id).disabled=busy);
+    for(const id of ['pai-stroke','pai-cap','pai-join'])$(id).closest('label').hidden=$('pai-mode').value==='filled';
     $('pai-prompt').disabled=busy;$('pai-consent').disabled=busy;
     $('pai-capture').disabled=busy;$('pai-analyze').disabled=busy||!reference||!client.session;
     $('pai-confirm').disabled=busy||!reference;$('pai-generate').disabled=busy||!valid||!client.session;
@@ -1189,11 +1218,11 @@ function createPluginAI({client,context,send,onSessionExpired,onInserted}){
   }
   function consent(){if(!$('pai-consent').checked)throw Error('请先允许将当前参考图标、预览和需求发送到所选 AI 服务。');}
   async function run(fn){if(busy)return;busy=true;update();try{await fn();}catch(e){message(e.message,true);}finally{busy=false;update();}}
-  function apply(value){const s=core.normalizeSpec(value),size=core.canvasDimensions(s.canvas);$('pai-width').value=size.width;$('pai-height').value=size.height;$('pai-stroke').value=s.stroke;$('pai-color').value=s.color;$('pai-cap').value=s.cap;$('pai-join').value=s.join;$('pai-padding').value=s.padding;$('pai-notes').value=s.styleNotes;}
+  function apply(value){const s=core.normalizeSpec(value),size=core.canvasDimensions(s.canvas);$('pai-mode').value=s.renderMode??'outline';$('pai-width').value=size.width;$('pai-height').value=size.height;$('pai-stroke').value=s.stroke;$('pai-color').value=s.color;$('pai-cap').value=s.cap;$('pai-join').value=s.join;$('pai-padding').value=s.padding;$('pai-notes').value=s.styleNotes;}
   function renderCandidates(){
     $('pai-candidates').replaceChildren(...candidates.map((item,i)=>{const button=document.createElement('button');button.type='button';button.className='pai-candidate';button.setAttribute('aria-pressed',String(i===index));const image=document.createElement('img');image.alt=item.name;image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(core.generatedSVG(item));const label=document.createElement('span');label.textContent=item.name;button.append(image,label);button.onclick=()=>{index=i;renderCandidates();update();};return button;}));
     $('pai-results').hidden=!candidates.length;
-    if(candidates.length){const item=candidates[index],size=core.canvasDimensions(item.spec.canvas);$('pai-result-note').textContent=`${size.width} × ${size.height} · 结构与描边边界通过；语义和视觉需人工检查。`;}
+    if(candidates.length){const item=candidates[index],size=core.canvasDimensions(item.spec.canvas);$('pai-result-note').textContent=`${size.width} × ${size.height} · 结构与图形边界通过；语义和视觉需人工检查。`;}
   }
   function invalidate(reason='参考选区已变化，请重新读取并确认。'){
     revision++;reference=null;confirmed=null;
@@ -1208,9 +1237,10 @@ function createPluginAI({client,context,send,onSessionExpired,onInserted}){
     cleanSVG(result.svg);reference=result;const f=result.facts;
     $('pai-reference-name').textContent=result.name;$('pai-reference-state').textContent=`${result.width} × ${result.height} · ${f.layers} 个可见图层`;
     const img=document.createElement('img');img.alt=result.name;img.src=result.preview;$('pai-preview').replaceChildren(img);
-    $('pai-facts').textContent=`原始描边：${f.widths.length?f.widths.join(' / '):'未识别'}；颜色：${f.colors.length?f.colors.join(' / '):'未识别'}。${f.warnings.join('；')}`;
+    $('pai-facts').textContent=`原始描边：${f.widths.length?f.widths.join(' / '):'无或未识别'}；填充：${f.fills.length?f.fills.join(' / '):'无'}；描边颜色：${f.colors.length?f.colors.join(' / '):'未识别'}。${f.warnings.join('；')}`;
     $('pai-width').value=result.width;$('pai-height').value=result.height;
-    for(const [field,values] of [['pai-stroke',f.widths],['pai-color',f.colors],['pai-cap',f.caps],['pai-join',f.joins]])$(field).value=values.length===1?values[0]:'';
+    $('pai-mode').value=f.fills.length&&!f.widths.length?'filled':'outline';
+    for(const [field,values] of [['pai-stroke',f.widths],['pai-color',$('pai-mode').value==='filled'?f.fills:f.colors],['pai-cap',f.caps],['pai-join',f.joins]])$(field).value=values.length===1?values[0]:'';
     $('pai-padding').value='1';$('pai-notes').value='';$('pai-spec').open=true;$('pai-consent').checked=false;
     message('已读取原始参数。留白为待确认目标值；混用或未识别字段请手动指定。也可让 AI 分析风格。');
   });
@@ -1240,7 +1270,7 @@ function createPluginAI({client,context,send,onSessionExpired,onInserted}){
   });
   $('pai-manage').onclick=()=>send({type:'ai-manage'});
   $('pai-prompt').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('pai-generate').click();}};
-  fields.forEach(id=>$(id).addEventListener('input',()=>{revision++;confirmed=null;update();message('目标规范已修改，请重新确认。');}));
+  fields.forEach(id=>$(id).addEventListener('input',()=>{if(id==='pai-mode'){const colors=$('pai-mode').value==='filled'?reference?.facts.fills:reference?.facts.colors;if(colors?.length===1)$('pai-color').value=colors[0];}revision++;confirmed=null;update();message('目标规范已修改，请重新确认。');}));
   $('pai-prompt').addEventListener('input',()=>{revision++;update();});
   function contextChanged(){const next=currentKey();if(next!==key){key=next;invalidate('账号或空间已变化，请重新读取参考。');candidates=[];renderCandidates();$('pai-connection').textContent='打开 AI 生成后检查连接。';}update();}
   function open(){

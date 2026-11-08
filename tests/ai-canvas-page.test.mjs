@@ -19,6 +19,7 @@ test('32/64 and rectangular canvas survive analyze/confirm/generate, frozen cand
   if(url!=='/api/icon-ai')return new Response(await fs.readFile(new URL('../'+url,import.meta.url)));
   const body=JSON.parse(options.body);calls.push(body);
   if(body.operation==='analyze')return new Response(JSON.stringify({model:'mock',spec:{...body.target,canvas:canvasDimensions(body.target.canvas)}}));
+  if(body.spec.renderMode==='filled')return Response.json({model:'mock',icons:[{name:'镂空',d:'M3 3L45 3L45 29L3 29Z M10 10L20 10L20 22L10 22Z'},{name:'三角',d:'M4 4L44 16L4 28Z'},{name:'矩形',d:'M8 4L40 4L40 28L8 28Z'}]});
   const {width,height}=canvasDimensions(body.spec.canvas);
   return new Response(JSON.stringify({model:'mock',icons:[{name:'横线',d:`M4 ${height-4}L${width-4} ${height-4}`},{name:'竖线',d:`M${width-4} 4L${width-4} ${height-4}`},{name:'折线',d:`M4 ${height-4}L${width/2} 4L${width-4} ${height-4}`}]}));
  };
@@ -40,12 +41,17 @@ test('32/64 and rectangular canvas survive analyze/confirm/generate, frozen cand
   assert.deepEqual(calls.at(-1).spec.canvas,{width:48,height:32});assert.match($('code-view').textContent,/width="48" height="32"/);
   assert.equal(Number(d.querySelector('#icon-stage svg').getAttribute('width'))/Number(d.querySelector('#icon-stage svg').getAttribute('height')),1.5);
   $('save-asset').click();const saved=JSON.parse(w.localStorage.getItem('iconflow-v1'));assert.deepEqual(saved.state.assets.at(-1).spec.canvas,{width:48,height:32});
+  $('ai-render-mode').value='filled';$('ai-render-mode').dispatchEvent(new w.Event('input'));assert.equal($('stroke').closest('.field').hidden,true);assert.equal($('generate').disabled,true);
+  $('ai-confirm').click();$('generate').click();await wait(()=>!$('generate').disabled&&$('code-view').textContent.includes('fill-rule="evenodd"'));
+  assert.match($('code-view').textContent,/stroke="none"/);assert.equal(calls.at(-1).spec.stroke,0);assert.match($('checks').textContent,/单色面形/);$('save-asset').click();
+  $('ai-render-mode').value='outline';$('ai-render-mode').dispatchEvent(new w.Event('input'));assert.equal($('stroke').closest('.field').hidden,false);assert.match($('code-view').textContent,/fill-rule="evenodd"/,'target edits keep prior filled candidates frozen');
+  $('ai-render-mode').value='filled';$('ai-render-mode').dispatchEvent(new w.Event('input'));
   $('export-open').click();$('download').click();await wait(()=>!$('download').disabled);assert.equal(downloads.at(-1),'iconflow-icon.svg');
   d.querySelector('[name=format][value=png]').click();$('export-size').value='128';$('download').click();await wait(()=>!$('download').disabled);assert.doesNotMatch($('toast').textContent,/失败/);assert.deepEqual(rasters.at(-1),[128,85],$('toast').textContent+' '+downloads.join(','));$('export-close').click();
   $('ai-canvas-width').value='';$('ai-canvas-width').dispatchEvent(new w.Event('input'));assert.equal($('generate').disabled,true);$('ai-confirm').click();assert.match($('ai-status').textContent,/画布/);
   $('ai-canvas-width').value='48';$('ai-canvas-width').dispatchEvent(new w.Event('input'));
   w.iconflow.stop();mount();await import('../app.js?canvas-reload');
-  assert.equal($('ai-canvas-width').value,'48');assert.equal($('ai-canvas-height').value,'32');assert.match($('code-view').textContent,/viewBox="0 0 48 32"/);assert.equal(w.iconflow.state.assets.length,3);
+  assert.equal($('ai-canvas-width').value,'48');assert.equal($('ai-canvas-height').value,'32');assert.match($('code-view').textContent,/viewBox="0 0 48 32"/);assert.equal(w.iconflow.state.assets.length,4);assert.equal($('ai-render-mode').value,'filled');assert.match($('code-view').textContent,/fill-rule="evenodd"/);
   w.iconflow.stop();
  }finally{await w.happyDOM.abort();}
 });

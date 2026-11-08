@@ -2,14 +2,15 @@
 export function createPluginAI({client,context,send,onSessionExpired,onInserted}){
   const $=id=>document.getElementById(id),core=PluginAICore;
   let reference=null,confirmed=null,candidates=[],index=0,busy=false,revision=0,counter=0,key='',resultRevision=-1;
-  const pending=new Map(),fields=['pai-width','pai-height','pai-stroke','pai-color','pai-cap','pai-join','pai-padding','pai-notes'];
+  const pending=new Map(),fields=['pai-mode','pai-width','pai-height','pai-stroke','pai-color','pai-cap','pai-join','pai-padding','pai-notes'];
   const currentKey=()=>client.session?.user?.id?client.session.user.id+':'+context().workspace:'';
   const message=(text,error=false)=>{$('pai-status').textContent=text;$('pai-status').dataset.tone=error?'error':'info';};
   const signature=()=>JSON.stringify({token:reference?.token,spec:spec()});
-  function spec(){return core.normalizeSpec({canvas:{width:Number($('pai-width').value),height:Number($('pai-height').value)},stroke:$('pai-stroke').value.trim()?Number($('pai-stroke').value):NaN,color:$('pai-color').value.trim(),cap:$('pai-cap').value,join:$('pai-join').value,padding:$('pai-padding').value.trim()?Number($('pai-padding').value):NaN,styleNotes:$('pai-notes').value});}
+  function spec(){return core.normalizeSpec({renderMode:$('pai-mode').value,canvas:{width:Number($('pai-width').value),height:Number($('pai-height').value)},stroke:$('pai-stroke').value.trim()?Number($('pai-stroke').value):NaN,color:$('pai-color').value.trim(),cap:$('pai-cap').value,join:$('pai-join').value,padding:$('pai-padding').value.trim()?Number($('pai-padding').value):NaN,styleNotes:$('pai-notes').value});}
   function update(){
     let valid=false;try{valid=!!reference&&confirmed===signature();}catch(_){}
     fields.forEach(id=>$(id).disabled=busy);
+    for(const id of ['pai-stroke','pai-cap','pai-join'])$(id).closest('label').hidden=$('pai-mode').value==='filled';
     $('pai-prompt').disabled=busy;$('pai-consent').disabled=busy;
     $('pai-capture').disabled=busy;$('pai-analyze').disabled=busy||!reference||!client.session;
     $('pai-confirm').disabled=busy||!reference;$('pai-generate').disabled=busy||!valid||!client.session;
@@ -36,11 +37,11 @@ export function createPluginAI({client,context,send,onSessionExpired,onInserted}
   }
   function consent(){if(!$('pai-consent').checked)throw Error('请先允许将当前参考图标、预览和需求发送到所选 AI 服务。');}
   async function run(fn){if(busy)return;busy=true;update();try{await fn();}catch(e){message(e.message,true);}finally{busy=false;update();}}
-  function apply(value){const s=core.normalizeSpec(value),size=core.canvasDimensions(s.canvas);$('pai-width').value=size.width;$('pai-height').value=size.height;$('pai-stroke').value=s.stroke;$('pai-color').value=s.color;$('pai-cap').value=s.cap;$('pai-join').value=s.join;$('pai-padding').value=s.padding;$('pai-notes').value=s.styleNotes;}
+  function apply(value){const s=core.normalizeSpec(value),size=core.canvasDimensions(s.canvas);$('pai-mode').value=s.renderMode??'outline';$('pai-width').value=size.width;$('pai-height').value=size.height;$('pai-stroke').value=s.stroke;$('pai-color').value=s.color;$('pai-cap').value=s.cap;$('pai-join').value=s.join;$('pai-padding').value=s.padding;$('pai-notes').value=s.styleNotes;}
   function renderCandidates(){
     $('pai-candidates').replaceChildren(...candidates.map((item,i)=>{const button=document.createElement('button');button.type='button';button.className='pai-candidate';button.setAttribute('aria-pressed',String(i===index));const image=document.createElement('img');image.alt=item.name;image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(core.generatedSVG(item));const label=document.createElement('span');label.textContent=item.name;button.append(image,label);button.onclick=()=>{index=i;renderCandidates();update();};return button;}));
     $('pai-results').hidden=!candidates.length;
-    if(candidates.length){const item=candidates[index],size=core.canvasDimensions(item.spec.canvas);$('pai-result-note').textContent=`${size.width} × ${size.height} · 结构与描边边界通过；语义和视觉需人工检查。`;}
+    if(candidates.length){const item=candidates[index],size=core.canvasDimensions(item.spec.canvas);$('pai-result-note').textContent=`${size.width} × ${size.height} · 结构与图形边界通过；语义和视觉需人工检查。`;}
   }
   function invalidate(reason='参考选区已变化，请重新读取并确认。'){
     revision++;reference=null;confirmed=null;
@@ -55,9 +56,10 @@ export function createPluginAI({client,context,send,onSessionExpired,onInserted}
     cleanSVG(result.svg);reference=result;const f=result.facts;
     $('pai-reference-name').textContent=result.name;$('pai-reference-state').textContent=`${result.width} × ${result.height} · ${f.layers} 个可见图层`;
     const img=document.createElement('img');img.alt=result.name;img.src=result.preview;$('pai-preview').replaceChildren(img);
-    $('pai-facts').textContent=`原始描边：${f.widths.length?f.widths.join(' / '):'未识别'}；颜色：${f.colors.length?f.colors.join(' / '):'未识别'}。${f.warnings.join('；')}`;
+    $('pai-facts').textContent=`原始描边：${f.widths.length?f.widths.join(' / '):'无或未识别'}；填充：${f.fills.length?f.fills.join(' / '):'无'}；描边颜色：${f.colors.length?f.colors.join(' / '):'未识别'}。${f.warnings.join('；')}`;
     $('pai-width').value=result.width;$('pai-height').value=result.height;
-    for(const [field,values] of [['pai-stroke',f.widths],['pai-color',f.colors],['pai-cap',f.caps],['pai-join',f.joins]])$(field).value=values.length===1?values[0]:'';
+    $('pai-mode').value=f.fills.length&&!f.widths.length?'filled':'outline';
+    for(const [field,values] of [['pai-stroke',f.widths],['pai-color',$('pai-mode').value==='filled'?f.fills:f.colors],['pai-cap',f.caps],['pai-join',f.joins]])$(field).value=values.length===1?values[0]:'';
     $('pai-padding').value='1';$('pai-notes').value='';$('pai-spec').open=true;$('pai-consent').checked=false;
     message('已读取原始参数。留白为待确认目标值；混用或未识别字段请手动指定。也可让 AI 分析风格。');
   });
@@ -87,7 +89,7 @@ export function createPluginAI({client,context,send,onSessionExpired,onInserted}
   });
   $('pai-manage').onclick=()=>send({type:'ai-manage'});
   $('pai-prompt').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('pai-generate').click();}};
-  fields.forEach(id=>$(id).addEventListener('input',()=>{revision++;confirmed=null;update();message('目标规范已修改，请重新确认。');}));
+  fields.forEach(id=>$(id).addEventListener('input',()=>{if(id==='pai-mode'){const colors=$('pai-mode').value==='filled'?reference?.facts.fills:reference?.facts.colors;if(colors?.length===1)$('pai-color').value=colors[0];}revision++;confirmed=null;update();message('目标规范已修改，请重新确认。');}));
   $('pai-prompt').addEventListener('input',()=>{revision++;update();});
   function contextChanged(){const next=currentKey();if(next!==key){key=next;invalidate('账号或空间已变化，请重新读取参考。');candidates=[];renderCandidates();$('pai-connection').textContent='打开 AI 生成后检查连接。';}update();}
   function open(){

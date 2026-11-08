@@ -5,12 +5,12 @@ import vm from 'node:vm';
 import {Window} from 'happy-dom';
 const png=Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=','base64'));
 const wait=async f=>{for(let i=0;i<300;i++){if(f())return;await new Promise(r=>setTimeout(r,5));}throw Error('Figma AI condition timed out');};
-async function fixture(){
+async function fixture(filled=false){
  const w=new Window({settings:{disableJavaScriptEvaluation:true,disableJavaScriptFileLoading:true,disableCSSFileLoading:true}}),d=w.document;
- let geometry='M8 16L14 22L25 9',html,role='owner',mode='success',resolvePaid;
+ let geometry=filled?'M8 8L24 8L24 24L8 24Z':'M8 16L14 22L25 9',html,role='owner',mode='success',resolvePaid;
  const calls=[],sent=[],nodes=[],callbacks={},pageEvents={},undo=[];
- const svg=()=>`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="${geometry}" fill="none" stroke="#252833" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
- const vector={id:'1:2',type:'VECTOR',visible:true,strokeWeight:2,strokeCap:'ROUND',strokeJoin:'ROUND',strokeAlign:'CENTER',strokes:[{type:'SOLID',color:{r:37/255,g:40/255,b:51/255}}],fills:[]};
+ const svg=()=>`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="${geometry}" ${filled?'fill="#252833" stroke="none"':'fill="none" stroke="#252833" stroke-width="2"'} stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+ const vector={id:'1:2',type:'VECTOR',visible:true,strokeWeight:filled?0:2,strokeCap:'ROUND',strokeJoin:'ROUND',strokeAlign:'CENTER',strokes:filled?[]:[{type:'SOLID',color:{r:37/255,g:40/255,b:51/255}}],fills:filled?[{type:'SOLID',color:{r:37/255,g:40/255,b:51/255}}]:[]};
  const source={id:'1:1',type:'FRAME',name:'公开参考',width:32,height:32,visible:true,children:[vector],absoluteBoundingBox:{x:100,y:200,width:32,height:32},exportAsync:async o=>o.format==='PNG'?png:svg()};vector.parent=source;
  const deliver=m=>{sent.push(m);queueMicrotask(()=>w.dispatchEvent(new w.MessageEvent('message',{data:{pluginMessage:m}})));};
  const figma={currentPage:{selection:[source],on:(n,f)=>pageEvents[n]=f,off(){},appendChild:n=>nodes.push(n)},viewport:{center:{x:0,y:0},scrollAndZoomIntoView(){}},clientStorage:{getAsync:async()=>null,setAsync:async()=>{},deleteAsync:async()=>{}},ui:{postMessage:deliver},showUI:value=>html=value,on:(n,f)=>callbacks[n]=f,openExternal(){},base64Encode:bytes=>Buffer.from(bytes).toString('base64'),commitUndo:()=>undo.push(true),createNodeFromSvg:svg=>{const node={id:'9:'+nodes.length,type:'FRAME',name:'',width:Number(svg.match(/width="([\d.]+)"/)[1]),height:Number(svg.match(/height="([\d.]+)"/)[1]),children:[{type:'VECTOR'}],data:{},setPluginData(k,v){this.data[k]=v;},getPluginData(k){return this.data[k]||'';},exportAsync:async()=>svg,remove(){this.removed=true;}};return node;}};
@@ -77,5 +77,16 @@ test('native mixed parameters are explicit and page-local edits invalidate confi
   $('pai-confirm').click();assert.match($('pai-status').textContent,/描边/);assert.equal($('pai-generate').disabled,true);
   $('pai-stroke').value='2';$('pai-stroke').dispatchEvent(new w.Event('input'));$('pai-confirm').click();assert.equal($('pai-generate').disabled,false);
   f.pageEvents.nodechange({nodeChanges:[{type:'PROPERTY_CHANGE',node:f.vector,properties:['strokeWeight']}]});await wait(()=>$('pai-generate').disabled);assert.equal($('pai-insert').disabled,true);
+ }finally{await w.happyDOM.abort();}
+});
+
+test('filled native selection seeds filled target without stroke; generated filled SVG and provenance survive insertion',async()=>{
+ const f=await fixture(true),{$,w}=f;try{
+  await f.capture();assert.equal($('pai-mode').value,'filled');assert.equal($('pai-color').value,'#252833');assert.equal($('pai-stroke').closest('label').hidden,true);assert.equal($('pai-stroke').value,'');
+  await f.generate();const call=f.calls.find(c=>c.body?.operation==='generate');assert.equal(call.body.spec.renderMode,'filled');assert.equal(call.body.spec.stroke,0);assert.equal(call.body.spec.fillRule,'evenodd');
+  const img=$('pai-candidates').querySelector('img');assert.match(decodeURIComponent(img.src),/fill-rule="evenodd" stroke="none"/);
+  $('pai-mode').value='outline';$('pai-mode').dispatchEvent(new w.Event('input'));assert.equal($('pai-insert').disabled,true);assert.equal($('pai-stroke').closest('label').hidden,false);
+  $('pai-mode').value='filled';$('pai-mode').dispatchEvent(new w.Event('input'));await f.generate();$('pai-insert').click();await wait(()=>f.nodes.length===1);
+  assert.equal(JSON.parse(f.nodes[0].data['iconlab.ai.v1']).spec.renderMode,'filled');assert.match(await f.nodes[0].exportAsync(),/fill-rule="evenodd" stroke="none"/);
  }finally{await w.happyDOM.abort();}
 });

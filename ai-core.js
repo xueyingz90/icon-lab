@@ -19,13 +19,18 @@ export function canvasDimensions(value) {
 export function normalizeSpec(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('规范必须是包含 canvas 等字段的对象。');
   const canvas=normalizeCanvas(value.canvas),{width,height}=canvasDimensions(canvas),edge=Math.min(width,height);
-  if (!Number.isFinite(value.stroke) || value.stroke < 0.5 || value.stroke > edge/2) throw Error('描边宽度需至少 0.5，且不超过画布短边的一半。');
+  const mode=value.renderMode??'outline';
+  if(!['outline','filled'].includes(mode))throw Error('图形结构请选择线性或面形。');
+  const filled=mode==='filled';
+  if(filled&&value.fillRule!==undefined&&value.fillRule!=='evenodd')throw Error('面形镂空规则必须为 evenodd。');
+  if (!filled && !Number.isFinite(value.stroke)) throw Error('请填写线性图标的描边宽度；面形图标请选择面形模式。');
+  if (!filled && (!Number.isFinite(value.stroke) || value.stroke < 0.5 || value.stroke > edge/2)) throw Error('描边宽度需至少 0.5，且不超过画布短边的一半。');
   if (typeof value.color !== 'string' || !/^#[\da-f]{6}$/i.test(value.color)) throw Error('图标颜色应为六位十六进制色值。');
-  if (!['round','butt','square'].includes(value.cap)) throw Error('描边端点无效。');
-  if (!['round','miter','bevel'].includes(value.join)) throw Error('描边连接无效。');
+  if (!filled && !['round','butt','square'].includes(value.cap)) throw Error('描边端点无效。');
+  if (!filled && !['round','miter','bevel'].includes(value.join)) throw Error('描边连接无效。');
   if (!Number.isFinite(value.padding) || value.padding < 0 || value.padding >= edge/2) throw Error('安全留白需为非负数字，且小于画布短边的一半。');
   if (typeof value.styleNotes !== 'string' || value.styleNotes.length > 1000) throw Error('风格说明最长为 1000 字符。');
-  return {canvas,stroke:value.stroke,color:value.color.toLowerCase(),cap:value.cap,join:value.join,padding:value.padding,styleNotes:value.styleNotes.trim()};
+  return {canvas,stroke:filled?0:value.stroke,color:value.color.toLowerCase(),cap:filled?'round':value.cap,join:filled?'round':value.join,padding:value.padding,styleNotes:value.styleNotes.trim(),...(filled?{renderMode:'filled',fillRule:'evenodd'}:{})};
 }
 
 function parseGeneratedPath(d) {
@@ -76,6 +81,26 @@ function generatedGeometryKey(paths) {
   }).sort());
 }
 
+// Filled output requires explicit closed contours with visible area; never silently
+// close an open stroke. Evenodd holes use the same compound path in every export.
+function validateFilledPaths(paths) {
+  if(paths.some(p=>!p.closed))throw Error('面形图标的每个轮廓必须以 Z 闭合。');
+  const seen=new Set();
+  for(const path of paths){
+    const key=generatedGeometryKey([path]);
+    if(seen.has(key))throw Error('面形图标存在重复轮廓，会导致镂空抵消。');
+    seen.add(key);
+    // Integrate x dy - y dx exactly using cubic polynomial coefficients.
+    let area=0;
+    for(let i=0;i+7<path.pts.length;i+=6){
+      const p=path.pts,coeff=offset=>{const a=p[i+offset],b=p[i+2+offset],c=p[i+4+offset],d=p[i+6+offset];return [a,3*(b-a),3*(a-2*b+c),-a+3*b-3*c+d];};
+      const x=coeff(0),y=coeff(1);
+      for(let j=0;j<4;j++)for(let k=1;k<4;k++)area+=(x[j]*k*y[k]-y[j]*k*x[k])/(j+k);
+    }
+    if(Math.abs(area)<1e-6)throw Error('面形轮廓没有可用面积，请使用非退化闭合形状。');
+  }
+}
+
 function extrema(a, b, c, d) {
   const values = [a,d], A = -a + 3*b - 3*c + d, B = 2*(a - 2*b + c), C = b-a;
   const roots = [];
@@ -92,6 +117,8 @@ export function validateGeneratedIcon(value, definition) {
   const spec = normalizeSpec(definition);
   if (!value || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw Error('生成图标需要 1–80 字符的名称。');
   const paths = parseGeneratedPath(value.d);
+  const filled=spec.renderMode==='filled';
+  if(filled)validateFilledPaths(paths);
   const xs = [], ys = [];
   for (const path of paths) for (let i = 0; i+7 < path.pts.length; i += 6) {
     const p = path.pts;
@@ -100,11 +127,11 @@ export function validateGeneratedIcon(value, definition) {
   }
   if (!xs.length || !ys.length) throw Error('生成图标没有可见路径。');
   const {width,height}=canvasDimensions(spec.canvas);
-  const radius = spec.stroke/2 * (spec.join === 'miter' ? 4 : spec.cap === 'square' ? Math.SQRT2 : 1);
+  const radius = filled?0:spec.stroke/2 * (spec.join === 'miter' ? 4 : spec.cap === 'square' ? Math.SQRT2 : 1);
   const bounds = {left:Math.min(...xs)-radius,top:Math.min(...ys)-radius,right:Math.max(...xs)+radius,bottom:Math.max(...ys)+radius};
   if (bounds.left < spec.padding-1e-6 || bounds.top < spec.padding-1e-6 || bounds.right > width-spec.padding+1e-6 || bounds.bottom > height-spec.padding+1e-6) throw Error(`路径或描边超出安全区域；X 需位于 ${spec.padding}–${width-spec.padding}，Y 需位于 ${spec.padding}–${height-spec.padding}。`);
   if (Math.max(...xs)-Math.min(...xs) < 0.01 && Math.max(...ys)-Math.min(...ys) < 0.01) throw Error('生成图标退化为一个点。');
-  return {name:value.name.trim(),d:value.d.trim(),stroke:spec.stroke,color:spec.color,cap:spec.cap,join:spec.join,fill:false,spec,validation:{status:'pass',bounds,manual:'图标语义、视觉重心与风格一致性仍需人工确认。'}};
+  return {name:value.name.trim(),d:value.d.trim(),stroke:spec.stroke,color:spec.color,cap:spec.cap,join:spec.join,fill:filled,...(filled?{fillRule:'evenodd'}:{}),spec,validation:{status:'pass',bounds,manual:'图标语义、视觉重心与风格一致性仍需人工确认。'}};
 }
 
 export function validateGeneratedIcons(value, definition) {
@@ -126,5 +153,6 @@ export function generatedSVG(icon, size) {
   if (size!==undefined && (![16,24,32,64,106,128,256].includes(size))) throw Error('预览尺寸无效。');
   const scale=size===undefined?1:size/Math.max(canvas.width,canvas.height);
   const width=canvas.width*scale,height=canvas.height*scale;
+  if(safe.fill)return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${canvas.width} ${canvas.height}" fill="${safe.color}" fill-rule="evenodd" stroke="none"><path d="${safe.d}"/></svg>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${canvas.width} ${canvas.height}" fill="none" stroke="${safe.color}" stroke-width="${safe.stroke}" stroke-linecap="${safe.cap}" stroke-linejoin="${safe.join}" stroke-miterlimit="4"><path d="${safe.d}"/></svg>`;
 }

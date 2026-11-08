@@ -19,8 +19,8 @@ test('mixed reference canvases, demo provenance, local destinations and plugin h
   assert.match(d.querySelector('[data-scope=demo]').textContent,/50/);
   $('figma-help-open').click();assert.equal($('figma-help-dialog').open,true);
   const download=d.querySelector('#figma-help-dialog a[download]');
-  assert.match(download.href,/v0\.5\.0\.zip$/);
-  await fs.access(new URL('../figma-plugin/icon-lab-figma-sync-v0.5.0.zip',import.meta.url));
+  assert.match(download.href,/v0\.6\.0\.zip$/);
+  await fs.access(new URL('../figma-plugin/icon-lab-figma-sync-v0.6.0.zip',import.meta.url));
   $('figma-help-close').click();assert.equal($('figma-help-dialog').open,false);
   $('catalog-add').click();assert.match($('catalog-save').textContent,/本地资产库/);$('catalog-upload').close();
   d.querySelector('[data-mode=generate]').click();

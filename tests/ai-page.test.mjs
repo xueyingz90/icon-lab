@@ -58,7 +58,7 @@ test('actual AI UI confirms disclosure and specifications, rejects stale or unsa
     d.querySelector('[data-mode="assets"]').click();d.querySelector('[data-mode="generate"]').click();
     assert.equal($('prompt').value,requirement,'multi-line scenario survives navigation');
     $('generate').click();
-    await wait(()=>!$('generate').disabled&&$('ai-status').textContent.includes('结构与保守'));
+    await wait(()=>!$('generate').disabled&&$('ai-status').textContent.includes('结构与图形'));
     assert.equal(requests.length,2);assert.deepEqual(requests[1].spec,spec);
     assert.equal($('candidates').children.length,3);assert.equal($('preview-label').textContent,generated.name);
     assert.equal($('icon-stage').querySelector('img'),null);assert.match($('code-view').textContent,/stroke-width="1.75"/);

@@ -1,8 +1,8 @@
-import {initPersonalQoderUI} from './personal-qoder-ui.js?v=20261108-ai-panel-3';
+import {initPersonalQoderUI} from './personal-qoder-ui.js?v=20261108-filled-1';
 import {CloudClient} from './cloud-client.js';
 import {cloudConfig} from './cloud-config.js';
 import {cleanSVG} from './catalog-core.js';
-import {normalizeSpec,validateGeneratedIcons,normalizeCanvas,canvasDimensions} from './ai-core.js?v=20261108-ai-panel-3';
+import {normalizeSpec,validateGeneratedIcons,normalizeCanvas,canvasDimensions} from './ai-core.js?v=20261108-filled-1';
 
 const $ = id => document.getElementById(id);
 const loopback = () => ['127.0.0.1','localhost','[::1]'].includes(window.location.hostname);
@@ -94,7 +94,7 @@ export function createAIWorkflow({state,getSpec,applySpec,setCandidates,persist,
     applySpec(spec);
     state.aiSpec={definition:spec,references:referencesKey(),confirmed:false,model:result.model};
     persist();
-    message('规范已读取。请检查右侧描边、留白与风格说明，再确认。');
+    message('规范已读取。请检查右侧图形结构、颜色、留白与风格说明，再确认。');
   });
   const confirm=()=>{
     if (busy) return;
@@ -119,13 +119,13 @@ export function createAIWorkflow({state,getSpec,applySpec,setCandidates,persist,
     const icons=validateGeneratedIcons(result.icons,spec);
     const aiMeta={prompt,model:typeof result.model==='string'?result.model.slice(0,100):'',generatedAt:new Date().toISOString(),references:state.references.map(r=>({name:r.name,markup:r.markup})),spec};
     setCandidates(icons.map(icon=>({...icon,aiMeta})));
-    persist();message('3 个候选的结构与保守描边边界通过。请选择并检查语义，再保存所选图标。');
+    persist();message('3 个候选的结构与图形边界通过。请选择并检查语义，再保存所选图标。');
   });
   $('ai-transport').value=loopback()?'local':'cloud';
   $('ai-transport').querySelector('[value="local"]').disabled=!loopback();
   $('ai-read').onclick=read;$('ai-confirm').onclick=confirm;
   $('ai-account').onclick=()=>{window.location.hash='account-settings';window.dispatchEvent(new Event('hashchange'));};
-  for (const id of ['stroke','color','linecap','linejoin','ai-padding','ai-style-notes','ai-canvas-width','ai-canvas-height']) $(id).addEventListener('input',()=>{revision++;try{state.aiCanvas=normalizeCanvas({width:+$('ai-canvas-width').value,height:+$('ai-canvas-height').value});const dims=canvasDimensions(state.aiCanvas);$('target-viewbox-display').textContent=`${dims.width} × ${dims.height}`;$('pixel-width').textContent=Number((state.stroke*24/Math.max(dims.width,dims.height)).toFixed(2));$('stroke').max=Math.min(dims.width,dims.height)/2;$('ai-padding').max=Math.min(dims.width,dims.height)/2;}catch{}state.aiPadding=+$('ai-padding').value;state.aiStyleNotes=$('ai-style-notes').value;update();persist();if(state.aiSpec)message('规范已修改，请重新确认；现有候选保留生成时的规范。');});
+  for (const id of ['ai-render-mode','stroke','color','linecap','linejoin','ai-padding','ai-style-notes','ai-canvas-width','ai-canvas-height']) $(id).addEventListener('input',()=>{revision++;try{state.aiCanvas=normalizeCanvas({width:+$('ai-canvas-width').value,height:+$('ai-canvas-height').value});const dims=canvasDimensions(state.aiCanvas);$('target-viewbox-display').textContent=`${dims.width} × ${dims.height}`;$('pixel-width').textContent=Number((state.stroke*24/Math.max(dims.width,dims.height)).toFixed(2));$('stroke').max=Math.min(dims.width,dims.height)/2;$('ai-padding').max=Math.min(dims.width,dims.height)/2;}catch{}state.aiPadding=+$('ai-padding').value;state.aiStyleNotes=$('ai-style-notes').value;update();persist();if(state.aiSpec)message('规范已修改，请重新确认；现有候选保留生成时的规范。');});
   $('prompt').addEventListener('input',()=>{revision++;state.promptDraft=$('prompt').value;persist();});
   window.addEventListener('iconlab:mode',()=>revision++);
   $('ai-transport').onchange=()=>message('接口已切换。个人 Qoder 配置仅用于云端连接。');

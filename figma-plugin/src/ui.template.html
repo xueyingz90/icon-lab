@@ -35,9 +35,9 @@
 <div class="pai-title"><strong>选区 AI 生成</strong><span id="pai-progress" class="muted">待选取参考</span></div>
 <div class="pai-selection"><div id="pai-preview">选中一个图标画板</div><div><strong id="pai-reference-name">参考图标</strong><small id="pai-reference-state">支持 Frame / Component / Instance</small><button id="pai-capture" type="button">读取选区</button></div></div>
 <p id="pai-facts" class="muted">本地读取尺寸与描边；不会自动发送素材。</p>
-<details id="pai-spec"><summary>目标规范 · 可编辑</summary><p class="muted">原始参数见上方；以下为生成目标。当前支持单色线性图标。</p><div class="grid">
+<details id="pai-spec"><summary>目标规范 · 可编辑</summary><p class="muted">原始参数见上方；以下为生成目标。支持单色线性和面形；面形使用闭合轮廓及 evenodd 镂空。</p><div class="grid">
 <label>宽<input id="pai-width" type="number" min="1" max="4096" step="any"></label><label>高<input id="pai-height" type="number" min="1" max="4096" step="any"></label>
-<label>描边<input id="pai-stroke" type="number" min="0.5" step="0.25"></label><label>颜色<input id="pai-color" placeholder="#252833" maxlength="7"></label>
+<label class="full">图形结构<select id="pai-mode"><option value="outline">线性 · 描边</option><option value="filled">面形 · 填充</option></select></label><label>描边<input id="pai-stroke" type="number" min="0.5" step="0.25"></label><label>颜色<input id="pai-color" placeholder="#252833" maxlength="7"></label>
 <label>端点<select id="pai-cap"><option value="">待指定</option><option value="round">圆头</option><option value="butt">平头</option><option value="square">方头</option></select></label>
 <label>连接<select id="pai-join"><option value="">待指定</option><option value="round">圆角</option><option value="miter">尖角</option><option value="bevel">斜角</option></select></label>
 <label class="full">安全留白 · 目标设定<input id="pai-padding" type="number" min="0" step="0.25" value="1"></label>
@@ -50,5 +50,5 @@
 <p id="pai-status" class="message" role="status" aria-live="polite">选中一个图标画板，然后读取选区。</p>
 <div id="pai-results" hidden><strong>候选图标</strong><div id="pai-candidates"></div><p id="pai-result-note" class="muted"></p><button id="pai-insert" type="button" class="primary wide">插入所选图标并准备入库</button><p class="muted">结果放在参考旁，保留原图。插入后可撤销；入库需在上传页另行确认。</p></div>
 </section>
-<footer><p class="muted" style="font-size:10px">v0.5.0 · 选区 AI 生成</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
+<footer><p class="muted" style="font-size:10px">v0.6.0 · 选区 AI 生成</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
 </main><script>/*__BUNDLE__*/</script></body></html>
