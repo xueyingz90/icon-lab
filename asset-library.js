@@ -44,18 +44,19 @@ async function run(action) {if(model.busy) return; model.busy=true; clearError()
 const root = el('section', undefined, 'catalog'); root.id='catalog-view'; root.hidden=true;
 root.innerHTML = `
  <div class="catalog-statusbar"><span class="catalog-mode" id="catalog-mode">本地试用 · 仅此浏览器</span><span id="catalog-account"></span></div>
- <div class="catalog-intro"><div><span class="eyebrow">ASSET LIBRARY</span><h2>让每一次设计，都能被再次使用。</h2><p>先查找已有资产，再决定是否创建。为图标保留来源、平台和每次修改。</p></div><div class="catalog-heading-actions"><button class="button" id="catalog-standards" type="button">图标规范</button><button class="button primary" id="catalog-add">＋ 上传图标</button></div></div>
- <div class="catalog-stats"><div><strong id="catalog-total">0</strong><span id="catalog-total-label">我的资产</span></div><div><strong id="catalog-platforms">0</strong><span>演示素材</span></div><div><strong id="catalog-sources">0</strong><span>已记录来源</span></div><div class="catalog-stat-note" id="catalog-storage-note">先查找已有资产，再登记新的设计。</div></div>
+ <div class="catalog-intro"><div class="catalog-heading-actions"><button class="button" id="catalog-standards" type="button">图标规范</button><button class="button primary" id="catalog-add">＋ 上传图标</button></div></div>
+
  <div id="catalog-message" role="alert" class="catalog-error" hidden></div>
  <div class="catalog-scope" role="group" aria-label="资产范围"><button type="button" data-scope="all" aria-pressed="true">全部</button><button type="button" data-scope="assets" aria-pressed="false" id="catalog-owned-tab">我的资产</button><button type="button" data-scope="demo" aria-pressed="false">演示素材</button></div>
- <div class="catalog-tools"><input id="catalog-search" type="search" placeholder="搜索名称、标签或状态" aria-label="搜索资产"><label>图形结构 <select id="catalog-type"></select></label><label>视觉风格 <select id="catalog-style"></select></label><button class="button" id="catalog-refresh">刷新</button><button class="button" id="catalog-reset">重置筛选</button><button class="button" id="catalog-import-legacy">登记本地图标</button><details><summary>更多</summary><button id="catalog-backup" type="button">备份资产库</button><label class="catalog-file-label">导入资产备份<input id="catalog-restore" type="file" accept=".json,application/json" hidden></label></details></div>
+ <div class="catalog-tools"><input id="catalog-search" type="search" placeholder="搜索名称、标签或状态" aria-label="搜索资产"><label>图形结构 <select id="catalog-type"></select></label><label>视觉风格 <select id="catalog-style"></select></label><button class="button" id="catalog-refresh">刷新</button><button class="button" id="catalog-reset">重置筛选</button><button class="button" id="catalog-import-legacy">从本地项目入库</button><details><summary>更多</summary><button id="catalog-backup" type="button">备份资产库</button><label class="catalog-file-label">导入资产备份<input id="catalog-restore" type="file" accept=".json,application/json" hidden></label></details></div>
  <details class="catalog-advanced-filters"><summary>更多筛选</summary><div><label>颜色模式 <select id="catalog-color-mode"></select></label><label>适用平台 <select id="catalog-platform"></select></label></div></details>
  <div class="catalog-cloud-tools" id="catalog-cloud-tools" hidden><label>工作空间 <select id="catalog-workspace"></select></label><button class="button" id="catalog-new-workspace">新建空间</button><button class="button" id="catalog-members">添加成员</button><button class="button" id="catalog-signout">退出登录</button></div>
  <div class="catalog-results"><span id="catalog-result-count"></span><small>演示素材可直接试用，上传资产保存后即可复用</small></div>
  <div id="catalog-grid" class="catalog-grid"></div><div id="catalog-empty" class="catalog-empty" hidden><strong>还没有找到合适的图标</strong><p id="catalog-empty-help">试试其他关键词，或者上传一份新资产。</p><button class="button" id="catalog-clear">清除筛选</button></div>
+<details class="catalog-insights"><summary>资产概览与保存说明</summary> <div class="catalog-stats"><div><strong id="catalog-total">0</strong><span id="catalog-total-label">我的资产</span></div><div><strong id="catalog-platforms">0</strong><span>演示素材</span></div><div><strong id="catalog-sources">0</strong><span>已记录来源</span></div><div class="catalog-stat-note" id="catalog-storage-note">先查找已有资产，再登记新的设计。</div></div></details>
  <p class="catalog-footnote" id="catalog-footnote">本地试用数据与原工作台项目独立保存，不会自动上传。</p>`;
 document.querySelector('.workspace-footer').before(root);
-const nav=button('资产库', () => showCatalog(), 'nav catalog-nav'); nav.id='catalog-nav'; nav.setAttribute('aria-label','资产库'); document.querySelector('nav[aria-label="工作模式"]').prepend(nav);
+const nav=button('图标资产库', () => showCatalog(), 'nav catalog-nav'); nav.id='catalog-nav'; nav.setAttribute('aria-label','图标资产库'); document.querySelector('nav[aria-label="工作模式"]').prepend(nav);
 document.querySelector('.session-pill').lastChild.textContent='资产工作台 · 阶段 1';
 
 const dialogs=el('div'); dialogs.innerHTML=`
@@ -78,7 +79,7 @@ function showCatalog() {
   window.iconflow.stop();
   ['workspace','assets-view'].forEach(id => $(id).hidden=true); root.hidden=false;
   document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b===nav));
-  $('page-title').firstChild.textContent='团队图标，从这里开始'; $('page-description').textContent='查找已有资产、记录设计来源，让每次设计沉淀为下一次复用。';
+  document.body.dataset.view='catalog';$('page-title').firstChild.textContent='图标资产库'; $('page-description').textContent='检索、检查与复用，让每份图标保留来源。';
   ['demo-start','export-open','backup','save-status'].forEach(id => $(id).hidden=true);
   document.querySelector('.workspace-footer').firstElementChild.textContent='本地试用与云端空间分开保存';
   localStorage.setItem('iconlab.lastView','catalog');
@@ -118,6 +119,7 @@ async function refresh() {
 }
 function render() {
   const cloud=model.mode==='cloud';
+  if(!root.hidden)$('breadcrumb-name').textContent=cloud?($('catalog-workspace').selectedOptions?.[0]?.textContent||'云端图标库'):'本地试用图标库';
   $('catalog-mode').textContent=cloud ? (model.client?.session ? '云端空间 · 已登录' : '云端空间 · 需要重新登录') : '本地试用 · 仅此浏览器';
   $('catalog-mode').classList.toggle('connected', cloud && !!model.client?.session);
   const canEdit=!cloud || (model.client?.session && model.role!=='viewer');
@@ -125,11 +127,11 @@ function render() {
   $('catalog-account').textContent=cloud ? (model.user?.email || '') : '本地数据不会随账号跨电脑同步';
   $('catalog-cloud-tools').hidden=!cloud;
   $('catalog-storage-note').textContent=cloud ? '共享保存 · 手动刷新获取最新版本' : '独立本地试用 · 数据保存在此浏览器';
-  $('catalog-upload-hint').textContent=cloud ? '本次提交将保存到当前云端工作空间，具有空间权限的成员可以查看。' : '本次提交仅保存在此浏览器，可先备份，之后逐项登记到云端。';
+  $('catalog-save').textContent=model.editing?(cloud?'保存新版本到云端':'保存新版本到本地'):(cloud?'入库到云端空间':'保存到本地资产库');$('catalog-upload-hint').textContent=cloud ? '本次提交将保存到当前云端工作空间，具有空间权限的成员可以查看。' : '本次提交仅保存在此浏览器，可先备份，之后逐项登记到云端。';
   $('catalog-footnote').textContent=cloud ? '最多加载最近 500 项；搜索和筛选作用于这些资产。云端出错时不会自动改存本地。' : '演示素材为内置样本，不会自动保存到你的资产；本地资产仅此浏览器可见。';
   $('catalog-total').textContent=String(model.assets.length);
   $('catalog-total-label').textContent=cloud?'空间资产':'我的资产';
-  $('catalog-owned-tab').textContent=cloud?'空间资产':'我的资产';
+  $('catalog-owned-tab').textContent=`${cloud?'空间资产':'本地资产'} ${model.assets.length}`;document.querySelector('[data-scope=demo]').textContent=`演示素材 ${model.demos.length}`;document.querySelector('[data-scope=all]').textContent=`全部 ${model.assets.length+model.demos.length}`;
   document.querySelectorAll('[data-scope]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scope===model.scope)));
   $('catalog-platforms').textContent=String(model.demos.length);
   $('catalog-sources').textContent=String(model.assets.filter(a=>a.source_url).length);
@@ -226,7 +228,7 @@ async function showDetail(asset) {
   const historySummary=el('summary','版本记录');
   const history=el('div',undefined,'catalog-history');historyDetails.append(historySummary,history);
   const checks=el('section');checks.id='catalog-detail-check';
-  content.append(overview,source,checks,extra,historyDetails);updateDetailCheck();
+  content.append(overview,checks,source,extra,historyDetails);updateDetailCheck();
   const edit=button('更新版本',()=>{$('catalog-detail').close();openUpload(asset);},'button primary'); edit.disabled=model.mode==='cloud' && (model.role==='viewer'||!model.client?.session);
   const actions=$('catalog-detail-actions'); actions.replaceChildren(button('下载 SVG',()=>{try{download(cleanSVG(asset.svg).svg,asset.name.replace(/[^\p{L}\p{N}_-]/gu,'_')+'.svg','image/svg+xml');}catch(e){showError(e);}}),copyCodeButton(asset),button('用于状态动效',()=>{$('catalog-detail').close(); window.iconflow.useCatalogSVG(cleanSVG(asset.svg).svg,asset.name);}),edit);
   openDialog('catalog-detail');
@@ -295,7 +297,7 @@ $('catalog-restore').onchange=()=>run(async()=>{
 });
 $('catalog-import-legacy').onclick=()=>{
   const assets=window.iconflow.staticAssets();
-  if(!assets.length){showError(Error('旧工作台尚未保存静态图标。请先在“同风格生成”保存到项目资产。'));return;}
+  if(!assets.length){showError(Error('本地项目中还没有静态图标。请先在“同风格生成”保存图标，再从这里入库。'));return;}
   const modal=$('catalog-detail');$('catalog-detail-title').textContent='选择要登记的本地图标';$('catalog-detail-actions').replaceChildren();const content=$('catalog-detail-content');content.replaceChildren(el('p','选择一项后补充信息，确认前不会上传。','catalog-hint'));
   assets.forEach(a=>content.append(button(a.name,()=>{modal.close();openUpload();setUpload(cleanSVG(a.svg),a.name);$('catalog-upload-form').elements.namedItem('name').value=a.name;})));openDialog('catalog-detail');
 };

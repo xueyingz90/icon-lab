@@ -1,0 +1,47 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {Window} from 'happy-dom';
+const wait=async predicate=>{for(let i=0;i<200;i++){if(predicate())return;await new Promise(r=>setTimeout(r,5));}throw Error('Workspace context timed out');};
+
+test('mixed reference canvases, demo provenance, local destinations and plugin help remain explicit across navigation and reload',async()=>{
+ const w=new Window({url:'http://localhost/',settings:{disableJavaScriptFileLoading:true,disableJavaScriptEvaluation:true,disableCSSFileLoading:true}});
+ const html=await fs.readFile(new URL('../index.html',import.meta.url),'utf8');
+ const mount=()=>{w.document.documentElement.innerHTML=html.replace(/<!doctype html>/i,'').replace(/<html[^>]*>|<\/html>/g,'');};mount();
+ for(const name of ['window','document','navigator','localStorage','sessionStorage','DOMParser','XMLSerializer','CustomEvent','FormData','File','Event'])Object.defineProperty(globalThis,name,{value:name==='window'?w:w[name],configurable:true,writable:true});
+ globalThis.matchMedia=w.matchMedia.bind(w);globalThis.requestAnimationFrame=w.requestAnimationFrame.bind(w);globalThis.cancelAnimationFrame=w.cancelAnimationFrame.bind(w);
+ let modelCalls=0;globalThis.fetch=async url=>{if(url==='/api/icon-ai'){modelCalls++;throw Error('unexpected model call');}return new Response(await fs.readFile(new URL('../'+url,import.meta.url)));};
+ try{
+  await import('../app.js');const d=w.document,$=id=>d.getElementById(id);
+  await wait(()=>d.querySelector('.catalog-card'));
+  assert.equal(d.body.dataset.view,'catalog');assert.match($('breadcrumb-name').textContent,/本地试用/);
+  assert.equal(d.querySelector('.catalog-insights').open,false);
+  assert.match(d.querySelector('[data-scope=demo]').textContent,/50/);
+  $('figma-help-open').click();assert.equal($('figma-help-dialog').open,true);
+  const download=d.querySelector('#figma-help-dialog a[download]');
+  assert.match(download.href,/v0\.4\.4\.zip$/);
+  await fs.access(new URL('../figma-plugin/icon-lab-figma-sync-v0.4.4.zip',import.meta.url));
+  $('figma-help-close').click();assert.equal($('figma-help-dialog').open,false);
+  $('catalog-add').click();assert.match($('catalog-save').textContent,/本地资产库/);$('catalog-upload').close();
+  d.querySelector('[data-mode=generate]').click();
+  const file=new w.File(['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M4 4L28 28" stroke="black" fill="none"/></svg>'],'32-grid.svg',{type:'image/svg+xml'});
+  Object.defineProperty($('reference-input'),'files',{value:[file],configurable:true});$('reference-input').dispatchEvent(new w.Event('change'));
+  await wait(()=>$('viewbox-display').textContent.includes('32 × 32'));
+  const count=w.iconflow.state.references.length;
+  assert.equal($('target-viewbox-display').textContent,'24 × 24');
+  d.querySelector('[data-demo=key]').click();
+  assert.equal(w.iconflow.state.references.length,count,'switching demos preserves references');
+  assert.match($('generation-context-note').textContent,/与左侧参考无生成关系/);
+  assert.match($('candidate-source').textContent,/非 AI/);assert.match($('code-view').textContent,/viewBox="0 0 24 24"/);
+  assert.equal(modelCalls,0);assert.equal($('generate').disabled,true);
+  $('save-asset').click();assert.match($('toast').textContent,/本地项目.*不会自动上传/);
+  d.querySelector('[data-mode=assets]').click();assert.match($('page-title').textContent,/本地项目/);
+  $('catalog-nav').click();assert.equal(d.body.dataset.view,'catalog');
+  d.querySelector('[data-mode=generate]').click();assert.match($('viewbox-display').textContent,/32 × 32/);assert.equal($('target-viewbox-display').textContent,'24 × 24');
+  w.iconflow.stop();
+  mount();await import('../app.js?workspace-context-reload');
+  assert.match($('viewbox-display').textContent,/32 × 32/);assert.equal($('target-viewbox-display').textContent,'24 × 24');
+  assert.match($('generation-context-title').textContent,/非 AI/);assert.equal(w.iconflow.state.assets.length,1);assert.equal(modelCalls,0);
+  w.iconflow.stop();
+ }finally{await w.happyDOM.abort();}
+});

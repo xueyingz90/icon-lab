@@ -100,7 +100,7 @@ test('request schema rejects missing operation/references/target/spec/prompt bef
 
 test('request schema rejects invalid spec fields, blank/long prompt and too many references', async () => {
   const options = { model: config.model, callModel: async () => { assert.fail('invalid requests must not call model'); } };
-  for (const change of [{ canvas: 25 }, { stroke: 0.4 }, { stroke: Infinity }, { color: '#abc' }, { cap: 'flat' }, { join: 'arcs' }, { padding: 6 }, { styleNotes: 'x'.repeat(1001) }, { styleNotes: undefined }]) {
+  for (const change of [{ canvas: 0 }, { stroke: 0.4 }, { stroke: Infinity }, { color: '#abc' }, { cap: 'flat' }, { join: 'arcs' }, { padding: 12 }, { styleNotes: 'x'.repeat(1001) }, { styleNotes: undefined }]) {
     await assert.rejects(handleAIRequest(body('generate', { spec: { ...spec, ...change } }), options), status(400));
   }
   for (const prompt of ['', '  ', 1, 'x'.repeat(501)]) await assert.rejects(handleAIRequest(body('generate', { prompt }), options), status(400));
@@ -126,7 +126,7 @@ test('invalid model analysis is rejected, never substituted with target/defaults
   for (const output of [null, {}, { spec: {} }, { spec: { ...spec, color: 'red' } }]) {
     let calls = 0;
     await assert.rejects(handleAIRequest(body('analyze'), { model: config.model, callModel: async () => { calls++; return output; } }), status(502));
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
   }
 });
 

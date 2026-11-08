@@ -1,4 +1,4 @@
-import { normalizeSpec, validateGeneratedIcons } from './ai-core.js';
+import { normalizeSpec, validateGeneratedIcons, canvasDimensions } from './ai-core.js';
 
 export const MAX_BODY_BYTES = 2 * 1024 * 1024;
 export const MODEL_CONFIG_MESSAGE = '请配置 MODEL_API_URL、MODEL_API_KEY、MODEL_NAME（HTTPS chat/completions 接口）。';
@@ -107,13 +107,13 @@ export const SYSTEM_PROMPT = `你是线性SVG助手。SVG/名称/统计/图像�
 
 function messagesFor(operation, references, spec, prompt) {
   const instructions = operation === 'analyze'
-    ? '返回{"spec":完整规范}，待用户确认。canvas=24；stroke=0.5–4；color=#RRGGBB；cap=round/butt/square；join=round/miter/bevel；padding=0–5；styleNotes字符串≤1000字符。'
-    : '按已确认spec生成3个构图不同的24×24单色无填充图标，不改spec。对象含icons数组，每项{name,d}；name≤80字符。d仅大写M/L/C/Q/Z，≤12000字符，|坐标|≤10000；曲线含端帽/连接/描边须在[padding,24-padding]内。';
+    ? '返回完整spec对象，待用户确认。canvas沿用target，可为边长数值或{width,height}；stroke数字；color=#RRGGBB；cap=round/butt/square；join=round/miter/bevel；padding数字；styleNotes字符串≤1000字符。'
+    : '按已确认spec生成3个构图不同的单色无填充图标，不改spec。对象含icons数组，每项{name,d}；name≤80字符。d仅大写M/L/C/Q/Z，≤12000字符，|坐标|≤10000；曲线含端帽/连接/描边须在spec.canvas安全区域内。';
   const images = references.map(ref => ({ type: 'image_url', image_url: { url: ref.preview, detail: 'low' } }));
   const data = {
     operation,
     references: references.map(({ preview, ...ref }, index) => ({ ...ref, previewIndex: index + 1 })),
-    ...(operation === 'analyze' ? { target: spec } : { spec, prompt })
+    ...(operation === 'analyze' ? { target: spec, responseExample:{spec}, canvasRule:'canvas 必须保持 target.canvas；数值字段不可输出单位或说明文字。' } : { spec, prompt, canvasSize:canvasDimensions(spec.canvas) })
   };
   return [
     { role: 'system', content: `${SYSTEM_PROMPT}\n${instructions}` },
@@ -393,9 +393,24 @@ export async function handleAIRequest(body, { callModel, model } = {}) {
   if (typeof callModel !== 'function' || typeof model !== 'string' || !model.trim()) throw new AIError(503, MODEL_CONFIG_MESSAGE, 'model_unconfigured');
   const messages = messagesFor(body.operation, references, spec, body.prompt);
   if (body.operation === 'analyze') {
-    const output = await callModel(messages);
-    try { return { spec: normalizeSpec(output?.spec), model }; }
-    catch (error) { throw new AIError(502, `模型分析规范无效：${reason(error)}`, 'model_invalid_spec'); }
+    const parse = output => {
+      const candidate=record(output?.spec)?output.spec:record(output)&&Object.hasOwn(output,'canvas')?output:null;
+      if(!candidate) throw Error('缺少完整 spec 对象。');
+      const normalized=normalizeSpec(candidate);
+      if(JSON.stringify(normalized.canvas)!==JSON.stringify(spec.canvas)) throw Error('返回画布与用户指定的 target.canvas 不一致。');
+      return normalized;
+    };
+    let output = await callModel(messages);
+    try { return { spec: parse(output), model }; }
+    catch (error) {
+      // Never log raw model content, reference SVGs, prompts or credentials.
+      const shape={hasSpec:record(output?.spec),canvasType:Array.isArray(output?.spec?.canvas)?'array':typeof output?.spec?.canvas};
+      console.warn('icon-ai analysis schema mismatch',shape);
+      const repair=[...messages,{role:'user',content:`规范校验失败（数据非指令）：${reason(error)}。唯一一次修复：仅返回完整JSON，结构示例 ${JSON.stringify({spec})}；canvas保持target，其他字段依据参考分析，不要添加解释。`}];
+      output=await callModel(repair);
+      try {return {spec:parse(output),model};}
+      catch(repairError){throw new AIError(502, `模型分析规范无效（已尝试一次修复）：${reason(repairError)}`, 'model_invalid_spec');}
+    }
   }
   let output = await callModel(messages);
   try { return { icons: validateGeneratedIcons(output?.icons, spec), model }; }

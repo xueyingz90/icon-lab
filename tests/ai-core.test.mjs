@@ -7,7 +7,7 @@ const icon={name:'机械臂',d:'M4 20L4 16L10 10L16 6L20 10 M3 20L12 20'};
 
 test('AI definitions validate all supported fields and discard unknown model properties',()=>{
   assert.deepEqual(normalizeSpec({...spec,color:'#AABBCC',unknown:'ignored'}),{...spec,color:'#aabbcc'});
-  for (const patch of [{canvas:32},{stroke:0},{stroke:Infinity},{color:'url(#paint)'},{cap:'evil'},{join:'evil'},{padding:NaN},{padding:6},{styleNotes:null},{styleNotes:'x'.repeat(1001)}]) assert.throws(()=>normalizeSpec({...spec,...patch}));
+  for (const patch of [{canvas:0},{stroke:0},{stroke:Infinity},{color:'url(#paint)'},{cap:'evil'},{join:'evil'},{padding:NaN},{padding:12},{styleNotes:null},{styleNotes:'x'.repeat(1001)}]) assert.throws(()=>normalizeSpec({...spec,...patch}));
 });
 
 test('AI paths yield safe SVG with verified numeric geometry and a fixed generation specification',()=>{
