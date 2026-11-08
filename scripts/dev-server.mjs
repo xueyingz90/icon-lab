@@ -8,7 +8,7 @@ import { AIError, MODEL_CONFIG_MESSAGE, createAIProvider, handleAIRequest, readJ
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const frontFiles = new Set([
   'index.html', 'app.js', 'style.css', 'library.js', 'taxonomy.js', 'asset-library.js', 'asset-library.css',
-  'catalog-core.js', 'standards-core.js', 'standards-ui.js', 'cloud-client.js', 'cloud-config.js', 'ai-core.js', 'ai-workflow.js', 'personal-qoder-ui.js'
+  'catalog-core.js', 'standards-core.js', 'standards-ui.js', 'cloud-client.js', 'cloud-config.js', 'ai-core.js', 'ai-workflow.js', 'personal-qoder-ui.js', 'project-backup.js'
 ]);
 const privateDirectories = new Set(['node_modules', 'backend', 'supabase', 'tests', 'scripts', 'docs', 'figma-plugin']);
 const mime = {

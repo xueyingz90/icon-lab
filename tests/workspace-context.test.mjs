@@ -1,3 +1,4 @@
+import {parseProjectBackup} from '../project-backup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -34,7 +35,8 @@ test('mixed reference canvases, demo provenance, local destinations and plugin h
   assert.match($('generation-context-note').textContent,/与左侧参考无生成关系/);
   assert.match($('candidate-source').textContent,/非 AI/);assert.match($('code-view').textContent,/viewBox="0 0 24 24"/);
   assert.equal(modelCalls,0);assert.equal($('generate').disabled,true);
-  $('save-asset').click();assert.match($('toast').textContent,/本地项目.*不会自动上传/);
+  $('save-asset').click();assert.equal($('saved-project-link').hidden,false);$('saved-project-link').click();assert.equal(d.body.dataset.view,'assets');assert.equal($('saved-project-link').hidden,true);assert.match($('toast').textContent,/本地项目.*不会自动上传/);
+  assert.equal(parseProjectBackup(w.localStorage.getItem('iconflow-v1')).state.assets.length,1);assert.ok($('local-backup'));assert.ok($('project-restore-file'));assert.equal($('project-restore-undo').hidden,true);
   d.querySelector('[data-mode=assets]').click();assert.match($('page-title').textContent,/本地项目/);
   $('catalog-nav').click();assert.equal(d.body.dataset.view,'catalog');
   d.querySelector('[data-mode=generate]').click();assert.match($('viewbox-display').textContent,/32 × 32/);assert.equal($('target-viewbox-display').textContent,'24 × 24');

@@ -68,7 +68,7 @@ test('actual page modules boot; local asset registration, search, version update
   form.dispatchEvent(new w.Event('submit',{cancelable:true,bubbles:true}));
   await wait(()=>d.getElementById('catalog-detail').open);
   assert.equal(d.getElementById('catalog-detail-title').textContent,'跨端收藏');
-  assert.match(d.getElementById('catalog-detail-content').textContent,/已保存 · 本地/);
+  assert.match(d.getElementById('catalog-detail-content').textContent,/已保存 · 此浏览器 · 本地资产库/);
   assert.doesNotMatch(d.getElementById('catalog-detail-content').textContent,/未审核/);
   allowCopy=false;
   Array.from(d.querySelectorAll('#catalog-detail-actions button')).find(b=>b.textContent==='复制代码').click();
