@@ -50,7 +50,14 @@ test('actual AI UI confirms disclosure and specifications, rejects stale or unsa
     $('ai-confirm').click();assert.match($('ai-status').textContent,/安全留白/);assert.equal($('generate').disabled,true);
     $('ai-padding').value='1';$('ai-padding').dispatchEvent(new w.Event('input'));
     $('ai-confirm').click();assert.equal($('generate').disabled,false);
-    $('prompt').value='机械臂，用于自动化控制';$('generate').click();
+    assert.equal($('prompt').tagName,'TEXTAREA');assert.equal($('prompt').maxLength,2000);
+    const requirement='机械臂，用于自动化控制。\n使用场景：设备列表和生产线控制面板；突出关节、夹爪和稳定底座。'+ '保持简单轮廓，避免装饰细节。'.repeat(45);
+    $('prompt').value=requirement;$('prompt').dispatchEvent(new w.Event('input'));
+    const enter=new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true});$('prompt').dispatchEvent(enter);
+    assert.equal(enter.defaultPrevented,false);assert.equal(requests.length,1,'plain Enter does not generate');
+    d.querySelector('[data-mode="assets"]').click();d.querySelector('[data-mode="generate"]').click();
+    assert.equal($('prompt').value,requirement,'multi-line scenario survives navigation');
+    $('generate').click();
     await wait(()=>!$('generate').disabled&&$('ai-status').textContent.includes('结构与保守'));
     assert.equal(requests.length,2);assert.deepEqual(requests[1].spec,spec);
     assert.equal($('candidates').children.length,3);assert.equal($('preview-label').textContent,generated.name);
@@ -60,7 +67,7 @@ test('actual AI UI confirms disclosure and specifications, rejects stale or unsa
     $('save-asset').click();let stored=JSON.parse(w.localStorage.getItem('iconflow-v1'));
     assert.equal(stored.state.assets.length,1);assert.deepEqual(stored.state.assets[0].spec,spec);
     assert.equal(stored.state.assets[0].d,alternatives[1].d);assert.equal(stored.state.aiCandidates.length,3);assert.equal(stored.state.aiCandidateIndex,1);
-    assert.equal(stored.state.assets[0].aiMeta.prompt,'机械臂，用于自动化控制');
+    assert.equal(stored.state.assets[0].aiMeta.prompt,requirement);
     assert.equal(stored.state.assets[0].aiMeta.references.length,3);
     const original=$('code-view').textContent;
     behavior='unsafe';$('generate').click();await wait(()=>!$('ai-read').disabled&&$('ai-status').dataset.error==='true');

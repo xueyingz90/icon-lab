@@ -1,6 +1,7 @@
+import {createPersonalQoderStore,handlePersonalQoder} from '../../../personal-qoder.js';
 import { AIError, MAX_BODY_BYTES, createAIProvider, handleAIRequest, readJSONBody, createRequestLimiter } from '../../../ai-api.js';
 
-type EdgeOptions = { env?: { get(name: string): string | undefined }; fetcher?: typeof fetch };
+type EdgeOptions = { env?: { get(name: string): string | undefined }; fetcher?: typeof fetch; credentialStore?: ReturnType<typeof createPersonalQoderStore> };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseOrigins(value: string | undefined): Set<string> {
@@ -58,7 +59,7 @@ async function authenticatedUser(token: string | null, config: ReturnType<typeof
   } finally { clearTimeout(timer); }
 }
 
-export function createEdgeHandler({ env = Deno.env, fetcher = globalThis.fetch }: EdgeOptions = {}) {
+export function createEdgeHandler({ env = Deno.env, fetcher = globalThis.fetch, credentialStore }: EdgeOptions = {}) {
   const acquire = createRequestLimiter();
   return async (request: Request): Promise<Response> => {
     const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Vary': 'Origin', 'X-Content-Type-Options': 'nosniff' });
@@ -90,8 +91,16 @@ export function createEdgeHandler({ env = Deno.env, fetcher = globalThis.fetch }
       }
       const body = await readJSONBody(request.body, { contentType: request.headers.get('Content-Type'), contentLength });
       const user = await authenticatedUser(request.headers.get('Authorization'), accessConfig(env), fetcher);
-      const { callModel, model } = createAIProvider(env, { fetcher });
       release = acquire(user);
+      const store=credentialStore||createPersonalQoderStore(env,{fetcher});
+      if(body?.operation==='credentials'){
+        const result=await handlePersonalQoder(body,user,store,{fetcher});
+        return new Response(JSON.stringify(result),{status:200,headers});
+      }
+      const personal=await store.load(user);
+      // A saved personal profile is authoritative: failures never charge the shared account.
+      const providerEnv=personal?{get:(name:string)=>(({ AI_PROVIDER:'qoder',QODER_PAT:personal.key,QODER_AGENT_ID:personal.agentId,QODER_ENVIRONMENT_ID:personal.environmentId,QODER_MODEL:personal.model,QODER_MAX_CREDITS:personal.credits} as Record<string,string>)[name])}:env;
+      const { callModel, model } = createAIProvider(providerEnv, { fetcher });
       const result = await handleAIRequest(body, { callModel, model });
       return new Response(JSON.stringify(result), { status: 200, headers });
     } catch (error) {

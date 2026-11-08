@@ -300,6 +300,21 @@ async function cleanQoderSession(sessionId, idle, key, fetcher) {
   finally { clearTimeout(timer); controller.abort(); }
 }
 
+// Read-only validation: no session is created and no model credits are consumed.
+export async function verifyQoderConfig(config,{fetcher=globalThis.fetch}={}){
+  createQoderCaller(config,{fetcher});
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{
+    const options={key:config.key,fetcher,signal:controller.signal};
+    const agent=await qoderJSON(`/agents/${config.agentId}`,options);
+    const model=typeof agent.model==='string'?agent.model:agent.model?.id;
+    if(agent.id!==config.agentId||agent.type!=='agent'||agent.archived_at||!Number.isInteger(agent.version)||agent.version<1||model!==config.model||agent.multiagent!==null||['tools','mcp_servers','skills'].some(k=>!Array.isArray(agent[k])||agent[k].length))throw new AIError(400,'Agent 须使用指定模型，并关闭工具、MCP、技能及多 Agent 编排。','qoder_agent_config');
+    const environment=await qoderJSON(`/environments/${config.environmentId}`,options);
+    if(environment.id!==config.environmentId||environment.type!=='environment'||environment.archived_at)throw new AIError(400,'运行环境无效或已归档。','qoder_environment_config');
+  }catch(error){if(error instanceof AIError)throw error;throw new AIError(502,'Qoder 连接检查失败，请稍后重试。','qoder_network_error');}
+  finally{clearTimeout(timer);controller.abort();}
+}
+
 export function createQoderCaller(config, { fetcher = globalThis.fetch } = {}) {
   const { key, agentId, environmentId, model = 'ultimate', credits = '10.00' } = config || {};
   if (typeof key !== 'string' || !/^pt-[A-Za-z0-9._-]+$/.test(key) || key.length > 4096 ||
@@ -395,8 +410,8 @@ export async function handleAIRequest(body, { callModel, model } = {}) {
   if (!record(body[field])) throw inputError(`${field} 必须提供完整规范。`);
   try { spec = normalizeSpec(body[field]); }
   catch (error) { throw inputError(`${field} 规范无效：${reason(error)}`); }
-  if (body.operation === 'generate' && (typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 500)) {
-    throw inputError('prompt 必须是 1–500 字符的图标描述。');
+  if (body.operation === 'generate' && (typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 2000)) {
+    throw inputError('prompt 必须是 1–2000 字符的图标描述。');
   }
   if (typeof callModel !== 'function' || typeof model !== 'string' || !model.trim()) throw new AIError(503, MODEL_CONFIG_MESSAGE, 'model_unconfigured');
   const messages = messagesFor(body.operation, references, spec, body.prompt);

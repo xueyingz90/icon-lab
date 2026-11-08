@@ -41,7 +41,7 @@ test('mixed reference canvases, demo provenance, local destinations and plugin h
   w.iconflow.stop();
   mount();await import('../app.js?workspace-context-reload');
   assert.match($('viewbox-display').textContent,/32 × 32/);assert.equal($('target-viewbox-display').textContent,'24 × 24');
-  assert.match($('generation-context-title').textContent,/非 AI/);assert.equal(w.iconflow.state.assets.length,1);assert.equal(modelCalls,0);
+  assert.match($('candidate-source').textContent,/非 AI/);assert.equal(w.iconflow.state.assets.length,1);assert.equal(modelCalls,0);
   w.iconflow.stop();
  }finally{await w.happyDOM.abort();}
 });

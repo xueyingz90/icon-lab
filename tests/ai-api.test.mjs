@@ -103,7 +103,7 @@ test('request schema rejects invalid spec fields, blank/long prompt and too many
   for (const change of [{ canvas: 0 }, { stroke: 0.4 }, { stroke: Infinity }, { color: '#abc' }, { cap: 'flat' }, { join: 'arcs' }, { padding: 12 }, { styleNotes: 'x'.repeat(1001) }, { styleNotes: undefined }]) {
     await assert.rejects(handleAIRequest(body('generate', { spec: { ...spec, ...change } }), options), status(400));
   }
-  for (const prompt of ['', '  ', 1, 'x'.repeat(501)]) await assert.rejects(handleAIRequest(body('generate', { prompt }), options), status(400));
+  for (const prompt of ['', '  ', 1, 'x'.repeat(2001)]) await assert.rejects(handleAIRequest(body('generate', { prompt }), options), status(400));
   for (const references of [[], 'svg', Array(9).fill(reference)]) await assert.rejects(handleAIRequest(body('generate', { references }), options), status(400));
 });
 
@@ -346,7 +346,7 @@ const edgeEnv = {
 };
 const edge = (changes = {}, fetcher = async url => url.endsWith('/auth/v1/user') ? Response.json({ id: userId }) : completion(batch)) => {
   const values = { ...edgeEnv, ...changes };
-  return createEdgeHandler({ env: { get: name => values[name] }, fetcher });
+  return createEdgeHandler({ env: { get: name => values[name] }, fetcher, credentialStore:{available:true,load:async()=>null,save:async()=>({}),remove:async()=>({})} });
 };
 const edgeRequest = (changes = {}) => {
   const { headers: extra = {}, ...options } = changes;

@@ -128,7 +128,7 @@ test('missing configuration serves static frontend but AI returns clear 503 with
   const { origin, post } = await start(t, { env: {}, fetcher: async () => assert.fail('unconfigured model must not run') });
   const page = await fetch(origin);
   assert.equal(page.status, 200);
-  for (const filename of ['ai-core.js', 'ai-workflow.js']) {
+  for (const filename of ['ai-core.js', 'ai-workflow.js', 'personal-qoder-ui.js']) {
     const module = await fetch(`${origin}/${filename}`);
     assert.equal(module.status, 200, filename);
     assert.match(module.headers.get('content-type'), /javascript/);
