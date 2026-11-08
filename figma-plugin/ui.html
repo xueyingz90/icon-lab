@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Icon Lab · 同步与资源库</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Icon Lab · 图标工作台</title>
 <style>
 .preview[data-background=dark]{background-color:#252a33;background-image:radial-gradient(#ffffff33 .7px,transparent .7px)}
 :root{color-scheme:light dark;--bg:var(--figma-color-bg,#fafafa);--panel:var(--figma-color-bg-secondary,#f2f3f5);--text:var(--figma-color-text,#24262d);--muted:var(--figma-color-text-secondary,#777d88);--line:var(--figma-color-border,#e1e3e8);--accent:var(--figma-color-bg-brand,#24262d);--on:var(--figma-color-text-onbrand,#fff)}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:12px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{padding:22px}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{font-size:17px;font-weight:700;letter-spacing:-.4px}.badge{color:var(--muted);font-size:10px;letter-spacing:1px}h1{font-size:22px;letter-spacing:-.6px;line-height:1.35;margin:0 0 8px}h2{font-size:13px;margin:0 0 12px}p{margin:8px 0}.muted,small{color:var(--muted)}section{margin-top:22px}label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:11px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:10px;border-radius:7px;min-width:0}textarea{resize:vertical}button{border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);padding:9px 12px;cursor:pointer}button:hover{background:var(--panel)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button:disabled{opacity:.45;cursor:default}.primary{background:var(--accent);color:var(--on);border-color:transparent}.primary:hover{filter:brightness(.92);background:var(--accent)}.wide{width:100%}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}.account{border:1px solid var(--line);border-radius:10px;padding:14px}.account-head{display:flex;gap:12px;justify-content:space-between;align-items:center;overflow-wrap:anywhere}.text-button{border:0;padding:3px;color:var(--muted);font-size:11px}.selection{border:1px solid var(--line);border-radius:12px;overflow:hidden}.preview{min-height:140px;display:flex;align-items:center;justify-content:center;background:var(--panel);background-image:radial-gradient(#b7bbc244 .7px,transparent .7px);background-size:10px 10px}.preview img{width:64px;height:64px;object-fit:contain}.selection-meta{padding:12px 14px;display:flex;justify-content:space-between;gap:10px}.selection-meta strong{display:block;max-width:240px;overflow-wrap:anywhere}.selection-meta small{display:block;font-size:10px}.message{padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:14px}.message[data-tone=error]{border-color:#be725f;color:var(--figma-color-text-danger,#a54129)}.message[data-tone=success]{border-color:#539374}.duplicate{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:14px;margin:14px 0}.duplicate p{white-space:pre-wrap;overflow-wrap:anywhere}.footnote{font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;margin-top:18px}details{margin-top:12px}summary{color:var(--muted);cursor:pointer}details p{font-size:11px}footer{margin-top:20px;text-align:center}footer button{font-size:11px;color:var(--muted)}[hidden]{display:none!important}
@@ -20,18 +20,712 @@
 .upload-actions .message{padding:6px 8px;font-size:11px;line-height:1.5;margin:0 0 6px;max-height:62px;overflow-y:auto}
 #duplicate-actions{margin:0;flex-wrap:nowrap}#duplicate-actions button{padding:8px 6px}#upload-panel .footnote{margin-top:10px;padding-top:8px;font-size:10px}
 @media(max-height:600px){#upload-panel .preview{height:64px;min-height:64px}#upload-panel .preview img{width:42px;height:42px}.plugin-topbar{padding:7px 0}.plugin-tabs{margin-top:5px}}
+
+#ai-panel{margin-top:14px}.pai-title{display:flex;justify-content:space-between;gap:8px;margin-bottom:12px}.pai-title span{font-size:10px}.pai-selection{display:grid;grid-template-columns:80px 1fr;gap:12px;padding:10px;border:1px solid var(--line);border-radius:8px}.pai-selection #pai-preview{display:grid;place-items:center;min-height:72px;background:var(--panel);font-size:10px;text-align:center}.pai-selection img{width:64px;height:64px;object-fit:contain}.pai-selection small{display:block;font-size:10px;margin:3px 0 7px}.pai-selection button{padding:4px 9px;font-size:11px}#pai-facts{font-size:10px;overflow-wrap:anywhere}#pai-spec .grid{gap:8px;margin-top:8px}#pai-spec input,#pai-spec select{padding:7px}#pai-spec p,.pai-shortcut,#pai-results p{font-size:10px}.pai-prompt-label{margin-top:16px}#pai-status{font-size:11px;padding:9px 10px}#pai-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}.pai-candidate{display:flex;flex-direction:column;align-items:center;min-width:0;padding:10px 5px;gap:8px;font-size:10px}.pai-candidate img{width:56px;height:56px;object-fit:contain;background:#a2a9b6;border-radius:4px}.pai-candidate span{overflow-wrap:anywhere}.pai-candidate[aria-pressed=true]{border:2px solid var(--accent);padding:9px 4px}
 </style></head><body><main>
 <div class="plugin-topbar">
 <header class="compact-header"><span class="brand">ICON LAB</span><label class="workspace-picker" id="workspace-picker" hidden><span class="sr-only">当前工作空间</span><select id="workspace" aria-label="当前工作空间"></select></label><span id="workspace-status" class="muted" role="status">正在恢复登录…</span><span id="compact-role" hidden>只读</span><button id="account-toggle" type="button" aria-controls="account-settings" aria-expanded="false">账号</button></header>
-<div class="plugin-tabs" role="group" aria-label="插件功能"><button type="button" id="upload-tab" aria-pressed="false">上传图标</button><button type="button" id="library-tab" aria-pressed="true">资源库</button></div>
+<div class="plugin-tabs" role="group" aria-label="插件功能"><button type="button" id="upload-tab" aria-pressed="false">上传图标</button><button type="button" id="library-tab" aria-pressed="true">资源库</button><button type="button" id="ai-tab" aria-pressed="false">AI 生成</button></div>
 </div>
 <section class="account" id="account-settings" aria-labelledby="account-heading" hidden><div class="account-settings-head"><h2 id="account-heading">账号设置</h2><button type="button" class="text-button" id="account-close">收起</button></div><form id="login-form" aria-describedby="account-message"><p class="muted">登录 Icon Lab 资产库</p><div class="grid"><label class="full">邮箱<input id="email" type="email" autocomplete="username" required></label><label class="full">密码<input id="password" type="password" autocomplete="current-password" minlength="8" required></label></div><button class="primary wide" id="login" style="margin-top:12px">登录</button></form><p class="message" id="account-message" role="status" aria-live="polite" aria-atomic="true" hidden></p><div id="account" hidden><div class="account-head"><strong id="account-email"></strong><button id="logout" class="text-button" type="button">退出登录</button></div><div class="actions"><small id="role"></small><button class="text-button" id="reload-spaces" type="button">刷新空间</button></div></div><label class="remember-login"><input type="checkbox" id="remember-session"><span>记住登录（仅此设备）</span></label><small>仅在此设备保存登录会话，不保存密码。</small><p id="session-status" class="muted" role="status"></p><button type="button" id="session-retry" class="text-button" hidden>重试恢复登录</button></section>
 <div id="upload-panel" hidden><section><div class="selection"><div class="preview" id="preview"><span class="muted">请在画布选中 Frame 或 Component</span></div><div class="selection-meta"><div><strong id="selection-name">尚未读取图标</strong><small id="selection-meta">仅预览，不会自动上传</small></div><button id="preview-background" class="text-button" type="button" aria-pressed="false" aria-label="切换预览底色">深色底</button><button id="read" class="text-button" type="button">重新读取</button></div></div><p class="muted" id="selection-error" role="status"></p></section>
 <section><form id="asset-form"><div class="grid"><label>图标名称 *<input name="name" id="name" maxlength="100" required></label><label>图标状态 *<input name="state_name" value="默认" maxlength="30" required></label><label>图形结构<select name="structure" id="upload-structure"></select></label><label>视觉风格<select name="visual_style" id="upload-style"></select></label><label>颜色模式<select name="color_mode" id="upload-color-mode"></select></label><label>适用平台<select name="target_platform" id="upload-platform"></select></label><label class="full">当前 Figma 文件链接 *<input name="source_url" id="source" type="url" placeholder="https://www.figma.com/design/…" required maxlength="2000"></label></div><details><summary>更多信息 · 标签与备注</summary><div class="grid"><label class="full">语义标签<input name="tags" placeholder="收藏,书签" maxlength="380"></label><label class="full">备注<textarea name="note" rows="2" maxlength="500" placeholder="使用场景、适用限制"></textarea></label></div></details><details><summary>为什么要填写文件链接？</summary><p class="muted">普通插件无法自动获取文件 Key。请粘贴当前文件的链接，我们会自动关联当前选中节点。此链接只在本次插件会话中使用，请确认属于当前文件。</p></details><div class="duplicate" id="duplicate" hidden><strong>发现已有资产</strong><p id="duplicate-description"></p><p class="muted">更新将保留旧版本；若要登记不同状态，请取消后修改状态字段。</p></div><div class="upload-actions" aria-label="上传操作"><p class="message" id="message" role="status" hidden></p><button type="submit" id="sync" aria-describedby="sync-hint" class="primary wide" disabled>确认同步到资产库</button><div class="actions" id="duplicate-actions" hidden><button id="cancel-update" type="button">取消更新</button><button id="update" class="primary" type="button">确认更新版本</button></div><p id="sync-hint" class="muted" role="status" aria-live="polite"></p></div></form><p class="footnote">仅同步当前预览，不会自动上传。保存后可在资产库查看与复用。</p></section>
 </div><section id="library-panel"><div class="grid"><label class="full">图标名称<input type="search" id="library-query" placeholder="搜索已上传图标"></label><label>图形结构<select id="library-structure"></select></label><label>视觉风格<select id="library-style"></select></label></div><div class="actions"><button id="library-search" type="button" class="primary">搜索</button><button id="library-reset" type="button">重置</button></div><p id="library-message" role="status" class="muted">登录后查询当前空间的已有资产。</p><div id="library-results" class="plugin-library-grid"></div><button type="button" id="library-more" class="wide" hidden>加载更多</button></section>
-<footer><p class="muted" style="font-size:10px">v0.4.4 · 上传按钮常驻</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
+<section id="ai-panel" hidden>
+<div class="pai-title"><strong>选区 AI 生成</strong><span id="pai-progress" class="muted">待选取参考</span></div>
+<div class="pai-selection"><div id="pai-preview">选中一个图标画板</div><div><strong id="pai-reference-name">参考图标</strong><small id="pai-reference-state">支持 Frame / Component / Instance</small><button id="pai-capture" type="button">读取选区</button></div></div>
+<p id="pai-facts" class="muted">本地读取尺寸与描边；不会自动发送素材。</p>
+<details id="pai-spec"><summary>目标规范 · 可编辑</summary><p class="muted">原始参数见上方；以下为生成目标。当前支持单色线性图标。</p><div class="grid">
+<label>宽<input id="pai-width" type="number" min="1" max="4096" step="any"></label><label>高<input id="pai-height" type="number" min="1" max="4096" step="any"></label>
+<label>描边<input id="pai-stroke" type="number" min="0.5" step="0.25"></label><label>颜色<input id="pai-color" placeholder="#252833" maxlength="7"></label>
+<label>端点<select id="pai-cap"><option value="">待指定</option><option value="round">圆头</option><option value="butt">平头</option><option value="square">方头</option></select></label>
+<label>连接<select id="pai-join"><option value="">待指定</option><option value="round">圆角</option><option value="miter">尖角</option><option value="bevel">斜角</option></select></label>
+<label class="full">安全留白 · 目标设定<input id="pai-padding" type="number" min="0" step="0.25" value="1"></label>
+<label class="full">风格说明 · AI 建议需确认<textarea id="pai-notes" maxlength="1000" rows="2"></textarea></label></div>
+<div class="actions"><button id="pai-analyze" type="button">AI 分析风格</button><button id="pai-confirm" type="button">确认规范</button></div></details>
+<label class="remember-login"><input id="pai-consent" type="checkbox"><span>允许发送参考图标、预览与需求至所选 AI 服务</span></label>
+<details><summary>连接与发送内容</summary><p id="pai-connection" class="muted">打开页面后检查连接。</p><button id="pai-manage" class="text-button" type="button">管理个人 Qoder 配置 ↗</button><p class="muted">发送当前参考 SVG、256px 预览与需求。请使用已获授权的素材。配置沿用同一工作台账号，密钥留在服务端。</p></details>
+<label class="pai-prompt-label">图标需求<textarea id="pai-prompt" maxlength="2000" rows="4" placeholder="例如：用于智能家居设备列表的相机图标，表现机身与镜头，简洁易识别，避免文字和阴影。"></textarea></label>
+<p class="muted pai-shortcut">Enter 换行 · ⌘ / Ctrl + Enter 生成</p><button id="pai-generate" class="primary wide" type="button" disabled>生成 3 个候选</button>
+<p id="pai-status" class="message" role="status" aria-live="polite">选中一个图标画板，然后读取选区。</p>
+<div id="pai-results" hidden><strong>候选图标</strong><div id="pai-candidates"></div><p id="pai-result-note" class="muted"></p><button id="pai-insert" type="button" class="primary wide">插入所选图标并准备入库</button><p class="muted">结果放在参考旁，保留原图。插入后可撤销；入库需在上传页另行确认。</p></div>
+</section>
+<footer><p class="muted" style="font-size:10px">v0.5.0 · 选区 AI 生成</p><button id="open-workbench" class="text-button" type="button">打开 Icon Lab 工作台 ↗</button></footer>
 </main><script>"use strict";
 (()=>{
+const PluginAICore=(()=>{//#region src/core/parse.ts
+const COMMANDS = "MmLlHhVvCcSsQqTtAaZz";
+function parsePath(d) {
+	const subs = [];
+	const n = d.length;
+	let i = 0;
+	let cx = 0;
+	let cy = 0;
+	let sx = 0;
+	let sy = 0;
+	let cur = null;
+	let cmd = "";
+	let px = 0;
+	let py = 0;
+	let prev = "";
+	let started = false;
+	const err = (msg) => {
+		throw new Error(`morphicons: ${msg} at d[${i}]`);
+	};
+	const isDigit = (c) => c >= 48 && c <= 57;
+	const skip = () => {
+		while (i < n) {
+			const c = d.charCodeAt(i);
+			if (c === 32 || c === 9 || c === 10 || c === 13 || c === 12 || c === 44) i++;
+			else break;
+		}
+	};
+	const num = () => {
+		skip();
+		const start = i;
+		if (i < n && (d[i] === "+" || d[i] === "-")) i++;
+		let dig = false;
+		while (i < n && isDigit(d.charCodeAt(i))) {
+			i++;
+			dig = true;
+		}
+		if (i < n && d[i] === ".") {
+			i++;
+			while (i < n && isDigit(d.charCodeAt(i))) {
+				i++;
+				dig = true;
+			}
+		}
+		if (!dig) err("expected number");
+		if (i < n && (d[i] === "e" || d[i] === "E")) {
+			const save = i;
+			i++;
+			if (i < n && (d[i] === "+" || d[i] === "-")) i++;
+			let ed = false;
+			while (i < n && isDigit(d.charCodeAt(i))) {
+				i++;
+				ed = true;
+			}
+			if (!ed) i = save;
+		}
+		return Number(d.slice(start, i));
+	};
+	const flag = () => {
+		skip();
+		const c = d[i];
+		if (c === "0" || c === "1") {
+			i++;
+			return c === "1" ? 1 : 0;
+		}
+		return err("expected arc flag (0|1)");
+	};
+	const open = () => {
+		if (!started) err("path must start with M/m");
+		if (!cur) {
+			cur = {
+				x0: cx,
+				y0: cy,
+				segs: [],
+				closed: false
+			};
+			subs.push(cur);
+		}
+		return cur;
+	};
+	let rel = false;
+	const nx = () => num() + (rel ? cx : 0);
+	const ny = () => num() + (rel ? cy : 0);
+	while (true) {
+		skip();
+		if (i >= n) break;
+		const ch = d[i];
+		if (COMMANDS.includes(ch)) {
+			cmd = ch;
+			i++;
+		} else if (cmd === "") err("path must start with M/m");
+		else if (cmd === "M") cmd = "L";
+		else if (cmd === "m") cmd = "l";
+		else if (cmd === "Z" || cmd === "z") err("stray data after Z");
+		rel = cmd >= "a";
+		switch (rel ? cmd.toUpperCase() : cmd) {
+			case "M": {
+				started = true;
+				const x = nx();
+				const y = ny();
+				cx = x;
+				cy = y;
+				sx = x;
+				sy = y;
+				cur = {
+					x0: x,
+					y0: y,
+					segs: [],
+					closed: false
+				};
+				subs.push(cur);
+				prev = "";
+				break;
+			}
+			case "L": {
+				const x = nx();
+				const y = ny();
+				open().segs.push([
+					"L",
+					x,
+					y
+				]);
+				cx = x;
+				cy = y;
+				prev = "";
+				break;
+			}
+			case "H": {
+				const x = nx();
+				open().segs.push([
+					"L",
+					x,
+					cy
+				]);
+				cx = x;
+				prev = "";
+				break;
+			}
+			case "V": {
+				const y = ny();
+				open().segs.push([
+					"L",
+					cx,
+					y
+				]);
+				cy = y;
+				prev = "";
+				break;
+			}
+			case "C":
+			case "S": {
+				let x1;
+				let y1;
+				if (cmd === "C" || cmd === "c") {
+					x1 = nx();
+					y1 = ny();
+				} else {
+					x1 = prev === "C" ? 2 * cx - px : cx;
+					y1 = prev === "C" ? 2 * cy - py : cy;
+				}
+				const x2 = nx();
+				const y2 = ny();
+				const x = nx();
+				const y = ny();
+				open().segs.push([
+					"C",
+					x1,
+					y1,
+					x2,
+					y2,
+					x,
+					y
+				]);
+				px = x2;
+				py = y2;
+				cx = x;
+				cy = y;
+				prev = "C";
+				break;
+			}
+			case "Q":
+			case "T": {
+				let x1;
+				let y1;
+				if (cmd === "Q" || cmd === "q") {
+					x1 = nx();
+					y1 = ny();
+				} else {
+					x1 = prev === "Q" ? 2 * cx - px : cx;
+					y1 = prev === "Q" ? 2 * cy - py : cy;
+				}
+				const x = nx();
+				const y = ny();
+				open().segs.push([
+					"Q",
+					x1,
+					y1,
+					x,
+					y
+				]);
+				px = x1;
+				py = y1;
+				cx = x;
+				cy = y;
+				prev = "Q";
+				break;
+			}
+			case "A": {
+				const rx = num();
+				const ry = num();
+				const rot = num();
+				const large = flag();
+				const sweep = flag();
+				const x = nx();
+				const y = ny();
+				open().segs.push([
+					"A",
+					rx,
+					ry,
+					rot,
+					large,
+					sweep,
+					x,
+					y
+				]);
+				cx = x;
+				cy = y;
+				prev = "";
+				break;
+			}
+			case "Z":
+				if (cur) {
+					cur.closed = true;
+					cur = null;
+				}
+				cx = sx;
+				cy = sy;
+				prev = "";
+				break;
+			default: err(`unsupported command "${cmd}"`);
+		}
+	}
+	return subs.filter((s) => s.segs.length > 0);
+}
+//#endregion
+//#region src/core/serialize.ts
+function fmt(v) {
+	return String(Math.round(v * 100) / 100);
+}
+/** Sampled subpaths → polyline `d` attribute. `closed[k]` appends Z to
+*  subpath k (closed loops in flight); without flags everything is open. */
+function serialize(subs, closed) {
+	let d = "";
+	for (let k = 0; k < subs.length; k++) {
+		const o = subs[k];
+		const n = o.length / 2;
+		d += `M${fmt(o[0])} ${fmt(o[1])}`;
+		for (let i = 1; i < n; i++) d += `L${fmt(o[2 * i])} ${fmt(o[2 * i + 1])}`;
+		if (closed?.[k]) d += "Z";
+	}
+	return d;
+}
+function fmtCanon(v) {
+	return String(Math.round(v * 1e4) / 1e4);
+}
+/** Cubic subpaths → canonical `d`, quantized to 4 decimals (engine-stable
+*  bytes; see fmtCanon). */
+function cubicsToPathD(paths) {
+	let d = "";
+	for (const { pts, closed } of paths) {
+		d += `M${fmtCanon(pts[0])} ${fmtCanon(pts[1])}`;
+		for (let i = 2; i < pts.length; i += 6) d += `C${fmtCanon(pts[i])} ${fmtCanon(pts[i + 1])} ${fmtCanon(pts[i + 2])} ${fmtCanon(pts[i + 3])} ${fmtCanon(pts[i + 4])} ${fmtCanon(pts[i + 5])}`;
+		if (closed) d += "Z";
+	}
+	return d;
+}
+//#endregion
+//#region src/core/normalize.ts
+/** Control-point offset for a quarter circle: (4/3)·tan(π/8) ≈ 0.5523. */
+const KAPPA = 4 / 3 * Math.tan(Math.PI / 8);
+const TAU = 2 * Math.PI;
+function builder(x0, y0) {
+	const pts = [x0, y0];
+	let cx = x0;
+	let cy = y0;
+	const cubic = (x1, y1, x2, y2, x, y) => {
+		pts.push(x1, y1, x2, y2, x, y);
+		cx = x;
+		cy = y;
+	};
+	const line = (x, y) => {
+		if (Math.abs(x - cx) < 1e-12 && Math.abs(y - cy) < 1e-12) return;
+		cubic(cx + (x - cx) / 3, cy + (y - cy) / 3, cx + 2 * (x - cx) / 3, cy + 2 * (y - cy) / 3, x, y);
+	};
+	const quad = (x1, y1, x, y) => {
+		cubic(cx + 2 / 3 * (x1 - cx), cy + 2 / 3 * (y1 - cy), x + 2 / 3 * (x1 - x), y + 2 / 3 * (y1 - y), x, y);
+	};
+	const arc = (rx0, ry0, rotDeg, large, sweep, x, y) => {
+		const x1 = cx;
+		const y1 = cy;
+		if (Math.abs(x - x1) < 1e-12 && Math.abs(y - y1) < 1e-12) return;
+		let rx = Math.abs(rx0);
+		let ry = Math.abs(ry0);
+		if (rx < 1e-12 || ry < 1e-12) {
+			line(x, y);
+			return;
+		}
+		const phi = rotDeg * Math.PI / 180;
+		const cosP = Math.cos(phi);
+		const sinP = Math.sin(phi);
+		const hx = (x1 - x) / 2;
+		const hy = (y1 - y) / 2;
+		const x1p = cosP * hx + sinP * hy;
+		const y1p = -sinP * hx + cosP * hy;
+		const lam = x1p * x1p / (rx * rx) + y1p * y1p / (ry * ry);
+		if (lam > 1) {
+			const s = Math.sqrt(lam);
+			rx *= s;
+			ry *= s;
+		}
+		const rx2 = rx * rx;
+		const ry2 = ry * ry;
+		const xp2 = x1p * x1p;
+		const yp2 = y1p * y1p;
+		let rad = (rx2 * ry2 - rx2 * yp2 - ry2 * xp2) / (rx2 * yp2 + ry2 * xp2);
+		if (rad < 0) rad = 0;
+		const co = (large === sweep ? -1 : 1) * Math.sqrt(rad);
+		const cxp = co * rx * y1p / ry;
+		const cyp = -co * ry * x1p / rx;
+		const ccx = cosP * cxp - sinP * cyp + (x1 + x) / 2;
+		const ccy = sinP * cxp + cosP * cyp + (y1 + y) / 2;
+		const th1 = Math.atan2((y1p - cyp) / ry, (x1p - cxp) / rx);
+		let dth = Math.atan2((-y1p - cyp) / ry, (-x1p - cxp) / rx) - th1;
+		if (sweep === 0 && dth > 0) dth -= TAU;
+		else if (sweep === 1 && dth < 0) dth += TAU;
+		const slices = Math.max(1, Math.ceil(Math.abs(dth) / (Math.PI / 2) - 1e-9));
+		const delta = dth / slices;
+		const alpha = 4 / 3 * Math.tan(delta / 4);
+		const ex = (t) => ccx + rx * Math.cos(t) * cosP - ry * Math.sin(t) * sinP;
+		const ey = (t) => ccy + rx * Math.cos(t) * sinP + ry * Math.sin(t) * cosP;
+		const dx = (t) => -rx * Math.sin(t) * cosP - ry * Math.cos(t) * sinP;
+		const dy = (t) => -rx * Math.sin(t) * sinP + ry * Math.cos(t) * cosP;
+		let t0 = th1;
+		let p0x = x1;
+		let p0y = y1;
+		for (let s = 1; s <= slices; s++) {
+			const t1 = th1 + delta * s;
+			const p1x = s === slices ? x : ex(t1);
+			const p1y = s === slices ? y : ey(t1);
+			cubic(p0x + alpha * dx(t0), p0y + alpha * dy(t0), p1x - alpha * dx(t1), p1y - alpha * dy(t1), p1x, p1y);
+			t0 = t1;
+			p0x = p1x;
+			p0y = p1y;
+		}
+	};
+	const finish = (closed) => {
+		if (closed) line(pts[0], pts[1]);
+		if (pts.length < 8) return null;
+		return {
+			pts: Float64Array.from(pts),
+			closed
+		};
+	};
+	return [
+		cubic,
+		line,
+		quad,
+		arc,
+		finish
+	];
+}
+function lowerSubpath(raw) {
+	const [cubic, line, quad, arc, finish] = builder(raw.x0, raw.y0);
+	for (const s of raw.segs) switch (s[0]) {
+		case "L":
+			line(s[1], s[2]);
+			break;
+		case "C":
+			cubic(s[1], s[2], s[3], s[4], s[5], s[6]);
+			break;
+		case "Q":
+			quad(s[1], s[2], s[3], s[4]);
+			break;
+		case "A": arc(s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+	}
+	return finish(raw.closed);
+}
+function attrNum(attrs, key, fallback = 0) {
+	const v = attrs[key];
+	if (v === void 0) return fallback;
+	const x = typeof v === "number" ? v : Number(v);
+	return Number.isFinite(x) ? x : fallback;
+}
+function parsePoints(v) {
+	const s = String(v ?? "").trim();
+	if (!s) return [];
+	const nums = s.split(/[\s,]+/).map(Number);
+	if (nums.some((x) => !Number.isFinite(x))) throw new Error(`morphicons: invalid points: "${s}"`);
+	return nums;
+}
+function polyPath(nums, closed) {
+	if (nums.length < 4) return null;
+	const [, line, , , finish] = builder(nums[0], nums[1]);
+	for (let i = 2; i + 1 < nums.length; i += 2) line(nums[i], nums[i + 1]);
+	return finish(closed);
+}
+function ellipsePath(cx, cy, rx, ry) {
+	if (rx < 1e-12 || ry < 1e-12) return null;
+	const kx = KAPPA * rx;
+	const ky = KAPPA * ry;
+	const e = cx + rx;
+	const w = cx - rx;
+	const s = cy + ry;
+	const n = cy - ry;
+	const [cubic, , , , finish] = builder(e, cy);
+	cubic(e, cy + ky, cx + kx, s, cx, s);
+	cubic(cx - kx, s, w, cy + ky, w, cy);
+	cubic(w, cy - ky, cx - kx, n, cx, n);
+	cubic(cx + kx, n, e, cy - ky, e, cy);
+	return finish(true);
+}
+function rectPath(attrs) {
+	const x = attrNum(attrs, "x");
+	const y = attrNum(attrs, "y");
+	const w = attrNum(attrs, "width");
+	const h = attrNum(attrs, "height");
+	if (w < 1e-12 || h < 1e-12) return null;
+	let rx = attrNum(attrs, "rx", NaN);
+	let ry = attrNum(attrs, "ry", NaN);
+	if (Number.isNaN(rx)) rx = Number.isNaN(ry) ? 0 : ry;
+	if (Number.isNaN(ry)) ry = rx;
+	rx = Math.min(Math.max(rx, 0), w / 2);
+	ry = Math.min(Math.max(ry, 0), h / 2);
+	if (rx < 1e-12 || ry < 1e-12) return polyPath([
+		x,
+		y,
+		x + w,
+		y,
+		x + w,
+		y + h,
+		x,
+		y + h
+	], true);
+	const xa = x + rx;
+	const xb = x + w - rx;
+	const xr = x + w;
+	const ya = y + ry;
+	const yb = y + h - ry;
+	const yd = y + h;
+	const kx = KAPPA * rx;
+	const ky = KAPPA * ry;
+	const [cubic, line, , , finish] = builder(xa, y);
+	line(xb, y);
+	cubic(xb + kx, y, xr, ya - ky, xr, ya);
+	line(xr, yb);
+	cubic(xr, yb + ky, xb + kx, yd, xb, yd);
+	line(xa, yd);
+	cubic(xa - kx, yd, x, yb + ky, x, yb);
+	line(x, ya);
+	cubic(x, ya - ky, xa - kx, y, xa, y);
+	return finish(true);
+}
+/** Icon (IconNode or `d` string) → list of cubic subpaths. */
+function iconToCubics(input) {
+	const out = [];
+	const push = (p) => {
+		if (p) out.push(p);
+	};
+	if (typeof input === "string") {
+		for (const s of parsePath(input)) push(lowerSubpath(s));
+		return out;
+	}
+	for (const [tag, attrs] of input) switch (tag) {
+		case "path":
+			for (const s of parsePath(String(attrs.d ?? ""))) push(lowerSubpath(s));
+			break;
+		case "line": {
+			const [, line, , , finish] = builder(attrNum(attrs, "x1"), attrNum(attrs, "y1"));
+			line(attrNum(attrs, "x2"), attrNum(attrs, "y2"));
+			push(finish(false));
+			break;
+		}
+		case "circle": {
+			const r = attrNum(attrs, "r");
+			push(ellipsePath(attrNum(attrs, "cx"), attrNum(attrs, "cy"), r, r));
+			break;
+		}
+		case "ellipse":
+			push(ellipsePath(attrNum(attrs, "cx"), attrNum(attrs, "cy"), attrNum(attrs, "rx"), attrNum(attrs, "ry")));
+			break;
+		case "rect":
+			push(rectPath(attrs));
+			break;
+		case "polyline":
+			push(polyPath(parsePoints(attrs.points), false));
+			break;
+		case "polygon":
+			push(polyPath(parsePoints(attrs.points), true));
+			break;
+		default: throw new Error(`morphicons: unsupported tag <${tag}>`);
+	}
+	return out;
+}
+function parseViewBox(vb) {
+	const v = typeof vb === "number" ? [
+		0,
+		0,
+		vb,
+		vb
+	] : typeof vb === "string" ? vb.trim().split(/[\s,]+/).map(Number) : vb;
+	const [minX, minY, w, h] = v;
+	if (v.length !== 4 || !(w > 0) || !(h > 0) || !Number.isFinite(minX) || !Number.isFinite(minY)) throw new Error(`morphicons: invalid viewBox "${String(vb)}"`);
+	return [
+		minX,
+		minY,
+		w,
+		h
+	];
+}
+/** Re-grids an icon drawn on `viewBox` onto the shared `grid` (24 by default),
+*  centred and preserving aspect ratio — the SVG `xMidYMid meet` rule.
+*
+*  Both endpoints of a morph must live on the same coordinate space. Lucide and
+*  Tabler already draw on 24×24; packs on 20 (Heroicons solid) or 32 (Carbon)
+*  do not, and mixing them unfitted makes Procrustes read the scale/offset gap
+*  as rotation. Apply once at module scope (not per render) and pass the
+*  resulting `d` anywhere an icon is accepted. */
+function fitIcon(input, viewBox, grid = 24) {
+	const [minX, minY, w, h] = parseViewBox(viewBox);
+	const s = Math.min(grid / w, grid / h);
+	const tx = (grid - w * s) / 2 - minX * s;
+	const ty = (grid - h * s) / 2 - minY * s;
+	const paths = iconToCubics(input);
+	for (const { pts } of paths) for (let i = 0; i < pts.length; i += 2) {
+		pts[i] = pts[i] * s + tx;
+		pts[i + 1] = pts[i + 1] * s + ty;
+	}
+	return cubicsToPathD(paths);
+}
+//#endregion
+
+
+
+// Keep square canvases numeric for existing saved projects; rectangles use width/height.
+function normalizeCanvas(value) {
+  let width, height;
+  if (typeof value === 'number') width=height=value;
+  else if (typeof value === 'string') {
+    const match=value.trim().match(/^(\d+(?:\.\d+)?)(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?$/i);
+    if(match){width=Number(match[1]);height=Number(match[2]??match[1]);}
+  } else if(Array.isArray(value)&&value.length===2) [width,height]=value;
+  else if(value&&typeof value==='object'&&!Array.isArray(value)) ({width,height}=value);
+  if (![width,height].every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=1&&n<=4096)) throw Error('画布宽高需为 1–4096 的有限数字。');
+  return width===height?width:{width,height};
+}
+function canvasDimensions(value) {
+  const canvas=normalizeCanvas(value);
+  return typeof canvas==='number'?{width:canvas,height:canvas}:canvas;
+}
+function normalizeSpec(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('规范必须是包含 canvas 等字段的对象。');
+  const canvas=normalizeCanvas(value.canvas),{width,height}=canvasDimensions(canvas),edge=Math.min(width,height);
+  if (!Number.isFinite(value.stroke) || value.stroke < 0.5 || value.stroke > edge/2) throw Error('描边宽度需至少 0.5，且不超过画布短边的一半。');
+  if (typeof value.color !== 'string' || !/^#[\da-f]{6}$/i.test(value.color)) throw Error('图标颜色应为六位十六进制色值。');
+  if (!['round','butt','square'].includes(value.cap)) throw Error('描边端点无效。');
+  if (!['round','miter','bevel'].includes(value.join)) throw Error('描边连接无效。');
+  if (!Number.isFinite(value.padding) || value.padding < 0 || value.padding >= edge/2) throw Error('安全留白需为非负数字，且小于画布短边的一半。');
+  if (typeof value.styleNotes !== 'string' || value.styleNotes.length > 1000) throw Error('风格说明最长为 1000 字符。');
+  return {canvas,stroke:value.stroke,color:value.color.toLowerCase(),cap:value.cap,join:value.join,padding:value.padding,styleNotes:value.styleNotes.trim()};
+}
+
+function parseGeneratedPath(d) {
+  if (typeof d !== 'string' || !d.trim() || d.length > 12000) throw Error('生成路径为空或超过 12000 字符。');
+  const tokens = d.match(/[MLCQZ]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi) || [];
+  if (d.replace(/[MLCQZ]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gi, '').replace(/[\s,]/g, '') || tokens.length > 2048) throw Error('仅支持 M、L、C、Q、Z 绝对路径和有限坐标。');
+  const sizes = {M:2,L:2,C:6,Q:4,Z:0};
+  if (tokens[0] !== 'M') throw Error('路径必须以绝对坐标 M 开始。');
+  let i = 0, moves = 0, segments = 0, hasSegment = false, closed = false;
+  while (i < tokens.length) {
+    const command = tokens[i++];
+    if (!Object.hasOwn(sizes, command)) throw Error('路径必须使用大写 M、L、C、Q、Z。');
+    if (closed && command !== 'M') throw Error('闭合子路径后必须用 M 开始新子路径。');
+    if (command === 'M') {moves++;closed=false;}
+    if (command === 'Z') {closed=true;continue;}
+    let count = 0;
+    while (i < tokens.length && !/^[a-z]$/i.test(tokens[i])) {
+      const number = Number(tokens[i++]);
+      if (!Number.isFinite(number) || Math.abs(number) > 10000) throw Error('路径坐标无效或过大。');
+      count++;
+    }
+    if (!count || count % sizes[command]) throw Error(`路径 ${command} 的坐标数量不正确。`);
+    segments += count / sizes[command];
+    if (command !== 'M' || count > 2) hasSegment = true;
+  }
+  if (!hasSegment || moves > 32 || segments > 128) throw Error('路径为空或过于复杂；最多 32 个子路径、128 段。');
+  const paths = iconToCubics([['path',{d}]]);
+  if (paths.length !== moves || paths.some(p => p.pts.length < 8 || [...p.pts].some(n => !Number.isFinite(n)))) throw Error('生成路径包含空或退化的子路径。');
+  return paths;
+}
+
+function generatedGeometryKey(paths) {
+  const aligned = (a,b,c) => Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])) < 1e-9;
+  return JSON.stringify(paths.map(path => {
+    const segments = [];
+    for (let i=0;i+7<path.pts.length;i+=6) {
+      const points = Array.from({length:4},(_,j)=>[path.pts[i+j*2],path.pts[i+j*2+1]]);
+      const [a,b,c,d] = points, dx=d[0]-a[0], dy=d[1]-a[1], length=dx*dx+dy*dy;
+      const t1=((b[0]-a[0])*dx+(b[1]-a[1])*dy)/length, t2=((c[0]-a[0])*dx+(c[1]-a[1])*dy)/length;
+      const line = length>0 && aligned(a,d,b) && aligned(a,d,c) && t1>=0 && t1<=t2 && t2<=1;
+      const previous = segments.at(-1);
+      if (line && previous?.length===2 && aligned(previous[0],a,d) && (a[0]-previous[0][0])*dx+(a[1]-previous[0][1])*dy>=0) previous[1]=d;
+      else segments.push(line?[a,d]:points);
+    }
+    const directions = [segments,segments.slice().reverse().map(segment=>segment.slice().reverse())];
+    const keys = directions.flatMap(direction=>path.closed?direction.map((_,i)=>JSON.stringify([...direction.slice(i),...direction.slice(0,i)])):[JSON.stringify(direction)]);
+    return JSON.stringify({closed:path.closed,segments:keys.sort()[0]});
+  }).sort());
+}
+
+function extrema(a, b, c, d) {
+  const values = [a,d], A = -a + 3*b - 3*c + d, B = 2*(a - 2*b + c), C = b-a;
+  const roots = [];
+  if (Math.abs(A) < 1e-12) {if (Math.abs(B) > 1e-12) roots.push(-C/B);}
+  else {
+    const discriminant = B*B - 4*A*C;
+    if (discriminant >= 0) roots.push((-B+Math.sqrt(discriminant))/(2*A),(-B-Math.sqrt(discriminant))/(2*A));
+  }
+  for (const t of roots) if (t > 0 && t < 1) {const u = 1-t;values.push(u*u*u*a + 3*u*u*t*b + 3*u*t*t*c + t*t*t*d);}
+  return values;
+}
+
+function validateGeneratedIcon(value, definition) {
+  const spec = normalizeSpec(definition);
+  if (!value || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 80) throw Error('生成图标需要 1–80 字符的名称。');
+  const paths = parseGeneratedPath(value.d);
+  const xs = [], ys = [];
+  for (const path of paths) for (let i = 0; i+7 < path.pts.length; i += 6) {
+    const p = path.pts;
+    xs.push(...extrema(p[i],p[i+2],p[i+4],p[i+6]));
+    ys.push(...extrema(p[i+1],p[i+3],p[i+5],p[i+7]));
+  }
+  if (!xs.length || !ys.length) throw Error('生成图标没有可见路径。');
+  const {width,height}=canvasDimensions(spec.canvas);
+  const radius = spec.stroke/2 * (spec.join === 'miter' ? 4 : spec.cap === 'square' ? Math.SQRT2 : 1);
+  const bounds = {left:Math.min(...xs)-radius,top:Math.min(...ys)-radius,right:Math.max(...xs)+radius,bottom:Math.max(...ys)+radius};
+  if (bounds.left < spec.padding-1e-6 || bounds.top < spec.padding-1e-6 || bounds.right > width-spec.padding+1e-6 || bounds.bottom > height-spec.padding+1e-6) throw Error(`路径或描边超出安全区域；X 需位于 ${spec.padding}–${width-spec.padding}，Y 需位于 ${spec.padding}–${height-spec.padding}。`);
+  if (Math.max(...xs)-Math.min(...xs) < 0.01 && Math.max(...ys)-Math.min(...ys) < 0.01) throw Error('生成图标退化为一个点。');
+  return {name:value.name.trim(),d:value.d.trim(),stroke:spec.stroke,color:spec.color,cap:spec.cap,join:spec.join,fill:false,spec,validation:{status:'pass',bounds,manual:'图标语义、视觉重心与风格一致性仍需人工确认。'}};
+}
+
+function validateGeneratedIcons(value, definition) {
+  if (!Array.isArray(value) || value.length !== 3) throw Error('必须返回恰好 3 个候选图标。');
+  const seen = new Set();
+  return value.map((item, index) => {
+    let icon;
+    try { icon = validateGeneratedIcon(item, definition); }
+    catch (error) { throw Error(`候选 ${index+1}：${error.message}`); }
+    const geometry = generatedGeometryKey(parseGeneratedPath(icon.d));
+    if (seen.has(geometry)) throw Error(`候选 ${index+1} 与其他候选路径重复，请提供不同构图。`);
+    seen.add(geometry);
+    return icon;
+  });
+}
+
+function generatedSVG(icon, size) {
+  const safe = validateGeneratedIcon(icon,icon.spec),canvas=canvasDimensions(safe.spec.canvas);
+  if (size!==undefined && (![16,24,32,64,106,128,256].includes(size))) throw Error('预览尺寸无效。');
+  const scale=size===undefined?1:size/Math.max(canvas.width,canvas.height);
+  const width=canvas.width*scale,height=canvas.height*scale;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${canvas.width} ${canvas.height}" fill="none" stroke="${safe.color}" stroke-width="${safe.stroke}" stroke-linecap="${safe.cap}" stroke-linejoin="${safe.join}" stroke-miterlimit="4"><path d="${safe.d}"/></svg>`;
+}
+
+return {normalizeCanvas,canvasDimensions,normalizeSpec,validateGeneratedIcons,generatedSVG};})();
+
 // taxonomy.js
 // Independent optional dimensions. Missing legacy information stays unclassified.
 const TAXONOMY={
@@ -340,6 +1034,7 @@ function createPluginLibrary({client,context,send,onSessionExpired=()=>{}}) {
     if(active&&next)load();else message(next?'打开资源库后查询当前空间。':'请先登录并选择工作空间。');
   }
   function switchTab(library){
+    if($('ai-panel')){$('ai-panel').hidden=true;$('ai-tab').setAttribute('aria-pressed','false');}
     active=library;$('library-panel').hidden=!library;$('upload-panel').hidden=library;
     $('library-tab').setAttribute('aria-pressed',String(library));$('upload-tab').setAttribute('aria-pressed',String(!library));
     if(library){contextChanged();if(currentKey()&&!loading)load();else if(!currentKey())message('请先登录并选择工作空间。');}
@@ -367,7 +1062,7 @@ function createPluginLibrary({client,context,send,onSessionExpired=()=>{}}) {
   $('library-query').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();load();}};
   ['library-structure','library-style'].forEach(id=>$(id).onchange=()=>load());
   $('library-reset').onclick=()=>{$('library-query').value='';$('library-structure').value='';$('library-style').value='';load();};
-  render();return {contextChanged,handleMessage};
+  render();return {contextChanged,handleMessage,deactivate(){active=false;$('library-panel').hidden=true;$('upload-panel').hidden=true;$('library-tab').setAttribute('aria-pressed','false');$('upload-tab').setAttribute('aria-pressed','false');}};
 }
 
 
@@ -455,6 +1150,115 @@ function createRememberedSession({client,send,onChange=()=>{},onStatus=()=>{},ti
 }
 
 
+// figma-plugin/src/ai.js
+// Shared core is embedded locally by build-figma-plugin; no remote JS or PAT storage.
+function createPluginAI({client,context,send,onSessionExpired,onInserted}){
+  const $=id=>document.getElementById(id),core=PluginAICore;
+  let reference=null,confirmed=null,candidates=[],index=0,busy=false,revision=0,counter=0,key='',resultRevision=-1;
+  const pending=new Map(),fields=['pai-width','pai-height','pai-stroke','pai-color','pai-cap','pai-join','pai-padding','pai-notes'];
+  const currentKey=()=>client.session?.user?.id?client.session.user.id+':'+context().workspace:'';
+  const message=(text,error=false)=>{$('pai-status').textContent=text;$('pai-status').dataset.tone=error?'error':'info';};
+  const signature=()=>JSON.stringify({token:reference?.token,spec:spec()});
+  function spec(){return core.normalizeSpec({canvas:{width:Number($('pai-width').value),height:Number($('pai-height').value)},stroke:$('pai-stroke').value.trim()?Number($('pai-stroke').value):NaN,color:$('pai-color').value.trim(),cap:$('pai-cap').value,join:$('pai-join').value,padding:$('pai-padding').value.trim()?Number($('pai-padding').value):NaN,styleNotes:$('pai-notes').value});}
+  function update(){
+    let valid=false;try{valid=!!reference&&confirmed===signature();}catch(_){}
+    fields.forEach(id=>$(id).disabled=busy);
+    $('pai-prompt').disabled=busy;$('pai-consent').disabled=busy;
+    $('pai-capture').disabled=busy;$('pai-analyze').disabled=busy||!reference||!client.session;
+    $('pai-confirm').disabled=busy||!reference;$('pai-generate').disabled=busy||!valid||!client.session;
+    $('pai-insert').disabled=busy||!candidates.length||resultRevision!==revision;
+    $('pai-progress').textContent=busy?'处理中':valid?'规范已确认':reference?'待确认规范':'待选取参考';
+    $('ai-panel').setAttribute('aria-busy',String(busy));
+  }
+  function rpc(type,data={},timeout=150000){
+    const requestId='pai-'+(++counter);
+    return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('请求超时，请先检查结果，避免重复调用。'));},timeout);pending.set(requestId,{resolve,reject,timer});send({type,requestId,...data});});
+  }
+  async function cloud(body){
+    if(!client.session?.access_token)throw Error('请先登录工作台账号。');
+    if(client.session.expires_at<Date.now()/1000+60)await client.refresh();
+    const owner=currentKey(),result=await rpc('ai-request',{body,token:reference?.token,accessToken:client.session.access_token,apiKey:client.config.key});
+    if(currentKey()!==owner||!client.session)throw Error('账号或空间已变化，已丢弃结果。');
+    return result;
+  }
+  function refBody(){
+    if(!reference)throw Error('请先读取参考选区。');
+    const info=cleanSVG(reference.svg),root=new DOMParser().parseFromString(info.svg,'image/svg+xml').documentElement;
+    const vb=(root.getAttribute('viewBox')||`0 0 ${info.width} ${info.height}`).trim().split(/[\s,]+/).map(Number),facts=reference.facts;
+    return [{name:reference.name.slice(0,200)||'参考图标',svg:info.svg,preview:reference.preview,vb,widths:facts.widths,caps:facts.caps,joins:facts.joins,strokes:facts.colors,fills:facts.fills}];
+  }
+  function consent(){if(!$('pai-consent').checked)throw Error('请先允许将当前参考图标、预览和需求发送到所选 AI 服务。');}
+  async function run(fn){if(busy)return;busy=true;update();try{await fn();}catch(e){message(e.message,true);}finally{busy=false;update();}}
+  function apply(value){const s=core.normalizeSpec(value),size=core.canvasDimensions(s.canvas);$('pai-width').value=size.width;$('pai-height').value=size.height;$('pai-stroke').value=s.stroke;$('pai-color').value=s.color;$('pai-cap').value=s.cap;$('pai-join').value=s.join;$('pai-padding').value=s.padding;$('pai-notes').value=s.styleNotes;}
+  function renderCandidates(){
+    $('pai-candidates').replaceChildren(...candidates.map((item,i)=>{const button=document.createElement('button');button.type='button';button.className='pai-candidate';button.setAttribute('aria-pressed',String(i===index));const image=document.createElement('img');image.alt=item.name;image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(core.generatedSVG(item));const label=document.createElement('span');label.textContent=item.name;button.append(image,label);button.onclick=()=>{index=i;renderCandidates();update();};return button;}));
+    $('pai-results').hidden=!candidates.length;
+    if(candidates.length){const item=candidates[index],size=core.canvasDimensions(item.spec.canvas);$('pai-result-note').textContent=`${size.width} × ${size.height} · 结构与描边边界通过；语义和视觉需人工检查。`;}
+  }
+  function invalidate(reason='参考选区已变化，请重新读取并确认。'){
+    revision++;reference=null;confirmed=null;
+    $('pai-reference-state').textContent='参考已失效';$('pai-consent').checked=false;
+    if(candidates.length)$('pai-result-note').textContent='保留上次候选供查看；参考已变化，不能继续插入。';
+    message(reason);update();
+  }
+  $('pai-capture').onclick=()=>run(async()=>{
+    revision++;reference=null;confirmed=null;const started=revision;message('正在本地读取选区，不会上传素材…');
+    const result=await rpc('ai-capture',{},30000);
+    if(started!==revision)throw Error('选区已变化，请重新读取。');
+    cleanSVG(result.svg);reference=result;const f=result.facts;
+    $('pai-reference-name').textContent=result.name;$('pai-reference-state').textContent=`${result.width} × ${result.height} · ${f.layers} 个可见图层`;
+    const img=document.createElement('img');img.alt=result.name;img.src=result.preview;$('pai-preview').replaceChildren(img);
+    $('pai-facts').textContent=`原始描边：${f.widths.length?f.widths.join(' / '):'未识别'}；颜色：${f.colors.length?f.colors.join(' / '):'未识别'}。${f.warnings.join('；')}`;
+    $('pai-width').value=result.width;$('pai-height').value=result.height;
+    for(const [field,values] of [['pai-stroke',f.widths],['pai-color',f.colors],['pai-cap',f.caps],['pai-join',f.joins]])$(field).value=values.length===1?values[0]:'';
+    $('pai-padding').value='1';$('pai-notes').value='';$('pai-spec').open=true;$('pai-consent').checked=false;
+    message('已读取原始参数。留白为待确认目标值；混用或未识别字段请手动指定。也可让 AI 分析风格。');
+  });
+  $('pai-analyze').onclick=()=>run(async()=>{
+    consent();const target=spec(),before=signature(),started=revision;message('正在分析参考风格…');
+    const result=await cloud({operation:'analyze',references:refBody(),target});
+    if(started!==revision||before!==signature())throw Error('参考或目标已变化，已丢弃分析结果。');
+    const s=core.normalizeSpec(result.spec);if(JSON.stringify(s.canvas)!==JSON.stringify(target.canvas))throw Error('AI 返回的画布与目标不一致。');
+    apply(s);confirmed=null;message('AI 建议已填入目标规范。请对照原始参数检查，再确认。');
+  });
+  $('pai-confirm').onclick=()=>{try{if(!reference)throw Error('请先读取选区。');spec();confirmed=signature();message('规范已确认。填写图标需求和使用场景后生成。');}catch(e){message(e.message,true);}update();};
+  $('pai-generate').onclick=()=>run(async()=>{
+    consent();if(!reference||confirmed!==signature())throw Error('请先确认当前规范。');
+    const prompt=$('pai-prompt').value.trim();if(!prompt||prompt.length>2000)throw Error('请填写 1–2000 字符的图形描述和使用场景。');
+    const target=spec(),before=signature(),started=revision,source={nodeId:reference.nodeId,fileKey:reference.fileKey,name:reference.name,width:reference.width,height:reference.height};
+    message('正在生成三个候选并校验，最多修正一次…');
+    const result=await cloud({operation:'generate',references:refBody(),spec:target,prompt});
+    if(started!==revision||before!==signature()||prompt!==$('pai-prompt').value.trim())throw Error('输入已变化，已丢弃过期候选。');
+    const icons=core.validateGeneratedIcons(result.icons,target),meta={version:1,prompt,model:String(result.model||'').slice(0,100),generatedAt:new Date().toISOString(),spec:target,reference:source};
+    candidates=icons.map(item=>({...item,aiMeta:meta}));index=0;resultRevision=revision;renderCandidates();message('三个候选已就绪。选择后插入画布，再通过上传页确认入库。');
+  });
+  $('pai-insert').onclick=()=>run(async()=>{
+    if(!reference||resultRevision!==revision||!candidates[index])throw Error('参考或需求已变化，请重新生成。');
+    const item=candidates[index];message('正在插入所选候选…');
+    const result=await rpc('ai-insert',{token:reference.token,svg:core.generatedSVG(item),name:item.name,meta:item.aiMeta},30000);
+    message('已插入可编辑矢量。请在上传页核对信息后确认入库。');onInserted(result);
+  });
+  $('pai-manage').onclick=()=>send({type:'ai-manage'});
+  $('pai-prompt').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('pai-generate').click();}};
+  fields.forEach(id=>$(id).addEventListener('input',()=>{revision++;confirmed=null;update();message('目标规范已修改，请重新确认。');}));
+  $('pai-prompt').addEventListener('input',()=>{revision++;update();});
+  function contextChanged(){const next=currentKey();if(next!==key){key=next;invalidate('账号或空间已变化，请重新读取参考。');candidates=[];renderCandidates();$('pai-connection').textContent='打开 AI 生成后检查连接。';}update();}
+  function open(){
+    $('ai-panel').hidden=false;$('ai-tab').setAttribute('aria-pressed','true');contextChanged();
+    if(!client.session){$('pai-connection').textContent='请先登录工作台账号。';return;}
+    run(async()=>{const status=await cloud({operation:'credentials',action:'status'});$('pai-connection').textContent=status.configured?`个人 Qoder · ${status.model}`:'团队云端接口';});
+  }
+  function handleMessage(data){
+    if(data.type==='ai-invalidated'){invalidate();return;}
+    if(!['ai-captured','ai-capture-error','ai-response','ai-inserted'].includes(data.type))return;
+    const task=pending.get(data.requestId);if(!task)return;clearTimeout(task.timer);pending.delete(data.requestId);
+    if(data.type==='ai-capture-error'||data.ok===false){if(data.status===401){client.setSession(null);onSessionExpired();}task.reject(Error(data.message||'AI 操作失败。'));}
+    else task.resolve(data.type==='ai-captured'?data.reference:data.type==='ai-response'?data.data:data);
+  }
+  update();return {open,contextChanged,invalidate,handleMessage};
+}
+
+
 // figma-plugin/src/ui.js
 
 const BRIDGE_ID = "__ICONLAB_BRIDGE_ID__";
@@ -466,6 +1270,7 @@ let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
 for(const [key,id] of [['structure','upload-structure'],['visual_style','upload-style'],['color_mode','upload-color-mode'],['target_platform','upload-platform']])populateClassificationSelect($(id),key);
 const library=createPluginLibrary({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>{model.spaces=[];model.workspace='';model.role='viewer';clearPending();controls();}});
+const ai=createPluginAI({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>controls(),onInserted:()=>{$('upload-tab').click();requestCapture();}});
 const remembered=createRememberedSession({client,send,onChange:({remember})=>{
   $('remember-session').checked=remember;
   if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}
@@ -495,6 +1300,7 @@ function watchRead() {
 }
 function requestCapture(type='capture') {watchRead();send({type});}
 function controls() {
+  ai.contextChanged();
   const logged=!!client.session?.access_token;
   if(!model.starting){if(!logged&&model.wasLogged!==false){showAccount(true);if(model.wasLogged===true)accountMessage('登录已失效或已退出，请重新登录。');}model.wasLogged=logged;}
   $('workspace-picker').hidden=!logged||!model.workspace;
@@ -550,6 +1356,7 @@ function acceptSelection(selection,preserveFields=false) {
     $('selection-meta').textContent=`${info.width} × ${info.height} · 节点 ${selection.nodeId}`;
     $('selection-error').textContent='';
     if(!preserveFields){$('name').value=(selection.name || '').slice(0,100);const f=$('asset-form').elements;f.namedItem('tags').value='';f.namedItem('note').value='';f.namedItem('state_name').value='默认';}
+    if(selection.aiMeta){const meta=selection.aiMeta;$('asset-form').elements.namedItem('note').value=('AI生成 · '+String(meta.model||'')+' · '+String(meta.generatedAt||'')+'\n需求：'+String(meta.prompt||'')+'\n参考节点：'+String(meta.reference?.nodeId||'')).slice(0,500);}
     if(selection.fileKey){$('source').value='https://www.figma.com/design/'+selection.fileKey+'/Icon-Lab';}
   }catch(e){$('preview').textContent='此图标暂不支持同步';$('selection-error').textContent=syncError(e);}
   controls();
@@ -594,12 +1401,13 @@ window.addEventListener('message',event=>{
   // Figma relays do not guarantee event.source === parent. Match the current
   // plugin runtime's bridge ID instead of depending on Window identity.
   const data=event.data?.pluginMessage;
-  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result','session-result'].includes(data.type))return;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result','session-result','ai-invalidated','ai-captured','ai-capture-error','ai-response','ai-inserted'].includes(data.type))return;
+  if(data.type.startsWith('ai-')){ai.handleMessage(data);return;}
   if(data.type==='session-result'){remembered.handleMessage(data);return;}
   if(data.type==='insert-result'){library.handleMessage(data);return;}
   if(data.type==='selection-loading'){
     watchRead();
-    model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();
+    ai.invalidate();model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();
   }
   if(data.type==='selection'){clearTimeout(readTimer);acceptSelection(data.selection);}
   if(data.type==='selection-error'){
@@ -631,6 +1439,7 @@ $('preview-background').onclick=()=>{
   $('preview-background').textContent=dark?'浅色底':'深色底';
   $('preview-background').setAttribute('aria-pressed',String(dark));
 };
+$('ai-tab').onclick=()=>{library.deactivate();ai.open();};
 $('open-workbench').onclick=()=>send({type:'open-workbench'});
 $('asset-form').addEventListener('input',()=>{clearPending();controls();});
 $('asset-form').addEventListener('change',()=>{clearPending();controls();});

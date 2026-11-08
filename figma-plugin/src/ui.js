@@ -1,3 +1,4 @@
+import {createPluginAI} from './ai.js';
 import {CloudClient} from '../../cloud-client.js';
 import {cloudConfig} from '../../cloud-config.js';
 import {cleanSVG} from '../../catalog-core.js';
@@ -15,6 +16,7 @@ let readTimer;
 const send=message=>parent.postMessage({pluginMessage:{...message,bridgeId:BRIDGE_ID}},'*');
 for(const [key,id] of [['structure','upload-structure'],['visual_style','upload-style'],['color_mode','upload-color-mode'],['target_platform','upload-platform']])populateClassificationSelect($(id),key);
 const library=createPluginLibrary({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>{model.spaces=[];model.workspace='';model.role='viewer';clearPending();controls();}});
+const ai=createPluginAI({client,context:()=>({workspace:model.workspace}),send,onSessionExpired:()=>controls(),onInserted:()=>{$('upload-tab').click();requestCapture();}});
 const remembered=createRememberedSession({client,send,onChange:({remember})=>{
   $('remember-session').checked=remember;
   if(!client.session){model.spaces=[];model.workspace='';model.role='viewer';clearPending();}
@@ -44,6 +46,7 @@ function watchRead() {
 }
 function requestCapture(type='capture') {watchRead();send({type});}
 function controls() {
+  ai.contextChanged();
   const logged=!!client.session?.access_token;
   if(!model.starting){if(!logged&&model.wasLogged!==false){showAccount(true);if(model.wasLogged===true)accountMessage('登录已失效或已退出，请重新登录。');}model.wasLogged=logged;}
   $('workspace-picker').hidden=!logged||!model.workspace;
@@ -99,6 +102,7 @@ function acceptSelection(selection,preserveFields=false) {
     $('selection-meta').textContent=`${info.width} × ${info.height} · 节点 ${selection.nodeId}`;
     $('selection-error').textContent='';
     if(!preserveFields){$('name').value=(selection.name || '').slice(0,100);const f=$('asset-form').elements;f.namedItem('tags').value='';f.namedItem('note').value='';f.namedItem('state_name').value='默认';}
+    if(selection.aiMeta){const meta=selection.aiMeta;$('asset-form').elements.namedItem('note').value=('AI生成 · '+String(meta.model||'')+' · '+String(meta.generatedAt||'')+'\n需求：'+String(meta.prompt||'')+'\n参考节点：'+String(meta.reference?.nodeId||'')).slice(0,500);}
     if(selection.fileKey){$('source').value='https://www.figma.com/design/'+selection.fileKey+'/Icon-Lab';}
   }catch(e){$('preview').textContent='此图标暂不支持同步';$('selection-error').textContent=syncError(e);}
   controls();
@@ -143,12 +147,13 @@ window.addEventListener('message',event=>{
   // Figma relays do not guarantee event.source === parent. Match the current
   // plugin runtime's bridge ID instead of depending on Window identity.
   const data=event.data?.pluginMessage;
-  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result','session-result'].includes(data.type))return;
+  if(!data || typeof data!=='object' || data.bridgeId!==BRIDGE_ID || !['selection-loading','selection','selection-error','verified','verify-error','insert-result','session-result','ai-invalidated','ai-captured','ai-capture-error','ai-response','ai-inserted'].includes(data.type))return;
+  if(data.type.startsWith('ai-')){ai.handleMessage(data);return;}
   if(data.type==='session-result'){remembered.handleMessage(data);return;}
   if(data.type==='insert-result'){library.handleMessage(data);return;}
   if(data.type==='selection-loading'){
     watchRead();
-    model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();
+    ai.invalidate();model.selection=null;clearPending();$('preview').textContent='正在读取所选图标…';$('selection-name').textContent='正在读取';$('selection-meta').textContent='';$('selection-error').textContent='';message('');controls();
   }
   if(data.type==='selection'){clearTimeout(readTimer);acceptSelection(data.selection);}
   if(data.type==='selection-error'){
@@ -180,6 +185,7 @@ $('preview-background').onclick=()=>{
   $('preview-background').textContent=dark?'浅色底':'深色底';
   $('preview-background').setAttribute('aria-pressed',String(dark));
 };
+$('ai-tab').onclick=()=>{library.deactivate();ai.open();};
 $('open-workbench').onclick=()=>send({type:'open-workbench'});
 $('asset-form').addEventListener('input',()=>{clearPending();controls();});
 $('asset-form').addEventListener('change',()=>{clearPending();controls();});

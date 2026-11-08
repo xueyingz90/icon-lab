@@ -1,13 +1,17 @@
 {
-  "name": "Icon Lab · 同步与资源库",
+  "name": "Icon Lab · 图标工作台",
   "id": "icon-lab-single-icon-sync-dev",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma"],
+  "editorType": [
+    "figma"
+  ],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["https://blolhaacvmciirmiovdo.supabase.co"],
-    "reasoning": "登录后查询同一 Icon Lab 资产库；仅在用户确认同步时上传所选图标。插入矢量在本地画布完成。"
+    "allowedDomains": [
+      "https://blolhaacvmciirmiovdo.supabase.co"
+    ],
+    "reasoning": "登录后访问同一 Icon Lab 资产库；用户确认后同步选区或发送参考进行 AI 生成，矢量插入在本地完成。"
   }
 }

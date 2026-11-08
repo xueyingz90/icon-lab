@@ -54,6 +54,7 @@ export function createPluginLibrary({client,context,send,onSessionExpired=()=>{}
     if(active&&next)load();else message(next?'打开资源库后查询当前空间。':'请先登录并选择工作空间。');
   }
   function switchTab(library){
+    if($('ai-panel')){$('ai-panel').hidden=true;$('ai-tab').setAttribute('aria-pressed','false');}
     active=library;$('library-panel').hidden=!library;$('upload-panel').hidden=library;
     $('library-tab').setAttribute('aria-pressed',String(library));$('upload-tab').setAttribute('aria-pressed',String(!library));
     if(library){contextChanged();if(currentKey()&&!loading)load();else if(!currentKey())message('请先登录并选择工作空间。');}
@@ -81,5 +82,5 @@ export function createPluginLibrary({client,context,send,onSessionExpired=()=>{}
   $('library-query').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();load();}};
   ['library-structure','library-style'].forEach(id=>$(id).onchange=()=>load());
   $('library-reset').onclick=()=>{$('library-query').value='';$('library-structure').value='';$('library-style').value='';load();};
-  render();return {contextChanged,handleMessage};
+  render();return {contextChanged,handleMessage,deactivate(){active=false;$('library-panel').hidden=true;$('upload-panel').hidden=true;$('library-tab').setAttribute('aria-pressed','false');$('upload-tab').setAttribute('aria-pressed','false');}};
 }
