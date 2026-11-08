@@ -17,8 +17,8 @@ export function parseProjectBackup(text){
    if(['__proto__','prototype','constructor'].includes(key))throw Error('备份包含无效字段。');
    if(['markup','original','svg'].includes(key)&&typeof v==='string'&&v.trim())cleanSVG(v);
    if(['stroke','duration','stateDuration','bounceStrength','aiPadding'].includes(key)&&v!==undefined&&(typeof v!=='number'||!Number.isFinite(v)||v<0||v>4096))throw Error('备份中的数值参数无效。');
-   if(key==='d'&&v!=null&&(typeof v!=='string'||v.length>200000||!/^[MmLlHhVvCcSsQqTtAaZzEe0-9+.,\s-]*$/.test(v)))throw Error('备份包含无效矢量路径。');
-   if(key==='bitmap'&&v&&(!/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v)||v.length>2800000))throw Error('备份中的图片必须是内嵌 PNG 或 JPEG。');
+   if(key==='d'&&v!=null&&(typeof v!=='string'||v.length>1048576||!/^[MmLlHhVvCcSsQqTtAaZzEe0-9+.,\s-]*$/.test(v)))throw Error('备份包含无效矢量路径。');
+   if(key==='bitmap'&&v&&(!/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(v)||v.length>5600000))throw Error('备份中的图片必须是内嵌 PNG 或 JPEG。');
    if(key==='color'&&v&&!/^#[\da-f]{3}(?:[\da-f]{3})?$/i.test(v))throw Error('备份中的图标颜色无效。');
    if(['cap','join'].includes(key)&&v&&!({cap:['round','butt','square'],join:['round','miter','bevel']}[key].includes(v)))throw Error('备份中的描边参数无效。');
    if(typeof v==='number'&&!Number.isFinite(v))throw Error('备份包含无效数值。');
