@@ -185,7 +185,7 @@ const QODER_BASE = 'https://api.qoder.com/api/v1/cloud';
 const qoderProtocolError = () => new AIError(502, 'Qoder 返回的会话或事件格式无效，未保存图标。', 'qoder_protocol_error');
 
 function qoderHTTPError(status) {
-  if ([401, 403].includes(status)) return new AIError(502, 'Qoder 令牌已失效或权限不足，请检查服务端配置。', 'qoder_auth_error');
+  if ([401, 403].includes(status)) return new AIError(502, 'Qoder 令牌已失效或权限不足，请检查当前连接配置。', 'qoder_auth_error');
   if (status === 404) return new AIError(503, 'Qoder Agent 或运行环境不存在，请检查服务端资源 ID。', 'qoder_resource_missing');
   if (status === 429) return new AIError(429, 'Qoder 服务限流，请稍后重试。', 'qoder_rate_limited');
   return new AIError(502, 'Qoder 服务请求失败，请稍后重试。', 'qoder_http_error');

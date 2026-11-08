@@ -74,7 +74,7 @@ export function createAIWorkflow({state,getSpec,applySpec,setCandidates,persist,
     $('ai-confirm').textContent=confirmed?'规范已确认':'确认规范';
     $('generate').textContent=busy?'请求处理中…':'生成 3 个候选';
     $('ai-confirm-state').textContent=confirmed?'已确认；可以生成':record?'修改参考或规范后需要重新确认':'请先读取并确认当前参考规范';
-    $('ai-progress').textContent=busy?'处理中':confirmed?'规范已确认':record?'规范待确认':'参考待分析';$('ai-transport').disabled=busy;
+    $('ai-progress').textContent=busy?'处理中':confirmed?'规范已确认':record?.references===referencesKey()?'规范待确认':'参考待分析';$('ai-transport').disabled=busy;
     $('generator-controls').setAttribute('aria-busy',String(busy));
   };
   const consent=()=>{if(!$('ai-consent').checked)throw Error('请先确认允许将参考图标和描述发送到模型服务。');};
@@ -131,5 +131,10 @@ export function createAIWorkflow({state,getSpec,applySpec,setCandidates,persist,
   $('ai-transport').onchange=()=>message('接口已切换。个人 Qoder 配置仅用于云端连接。');
   initPersonalQoderUI({request:requestAI});
   update();
+  if(state.aiSpec){
+    if(state.aiSpec.references!==referencesKey())message('参考图标已变化，请重新读取规范。');
+    else if(state.aiSpec.confirmed&&state.aiSpec.signature===signature())message('规范已确认。填写需求后生成候选。');
+    else message('检查右侧规范后确认，再生成候选。');
+  }
   return {generate,update,invalidate:(reason)=>{revision++;if(state.aiSpec)state.aiSpec.confirmed=false;update();message(reason==='demo'?'已切换内置演示，未调用 AI。使用当前参考生成前，请重新读取并确认规范。':'参考图标已变化，请重新读取规范。');}};
 }

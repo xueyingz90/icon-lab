@@ -25,6 +25,7 @@ test('saving checks PAT access to both resources with GET only, then encrypts; u
 });
 test('credential store sends service key only to fixed Supabase RPC and sanitizes all storage failures',async()=>{
  const calls=[],values={SUPABASE_URL:'https://db.invalid',SUPABASE_SERVICE_ROLE_KEY:'server-only-test'};
+ await assert.rejects(createPersonalQoderStore({get:()=>undefined}).load(user),e=>e.code==='credentials_unavailable');
  const store=createPersonalQoderStore({get:n=>values[n]},{fetcher:async(url,init)=>{calls.push({url:String(url),init});return Response.json(config);}});
  assert.deepEqual(await store.load(user),config);assert.equal(calls[0].url,'https://db.invalid/rest/v1/rpc/il_personal_qoder');
  assert.deepEqual(JSON.parse(calls[0].init.body),{p_action:'load',p_user:user,p_config:null});
